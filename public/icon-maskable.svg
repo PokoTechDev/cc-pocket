@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="CC Pocket">
+  <rect width="512" height="512" fill="#0a0a0a" />
+  <g fill="none" stroke="#4ea1ff" stroke-width="40" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M160 224 L256 152 L352 224 L352 360 L160 360 Z" />
+    <path d="M208 272 L304 272 M208 320 L280 320" />
+  </g>
+</svg>

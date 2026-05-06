@@ -11,6 +11,7 @@ import { createTmuxDriver } from './tmux.js';
 import { createFileTailer } from './tailer.js';
 import { createSseBroadcaster } from './sse.js';
 import { createRouter } from './routes.js';
+import { createStaticHandler } from './static.js';
 
 export const PORT = 7000;
 export const SERVER_VERSION = '0.0.0';
@@ -18,6 +19,7 @@ export const SERVER_VERSION = '0.0.0';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const DEFAULT_PIN_FILE = join(__dirname, '..', 'data', 'pin.json');
 const DEFAULT_PIPE_DIR = join(homedir(), '.cc-pocket', 'pipe');
+const DEFAULT_PUBLIC_DIR = join(__dirname, '..', 'public');
 const TICK_INTERVAL_MS = 1000;
 
 export function createPinStore(filepath) {
@@ -45,6 +47,7 @@ export function detectTailscaleIp({ exec = execFileSync } = {}) {
 export function buildApp({
   pinFile = DEFAULT_PIN_FILE,
   pipeDir = DEFAULT_PIPE_DIR,
+  publicDir = DEFAULT_PUBLIC_DIR,
   serverVersion = SERVER_VERSION,
   startedAt = Date.now(),
   port = PORT,
@@ -60,6 +63,7 @@ export function buildApp({
   const { handler } = createRouter({
     pinStore, auth, state, tmux, sse, serverVersion, startedAt,
   });
+  const serveStatic = createStaticHandler(publicDir);
 
   function startTailerForWindow(windowId) {
     if (tailers.has(windowId)) return;
@@ -100,6 +104,7 @@ export function buildApp({
     await syncWindows();
     const stopKeepalive = sse.startKeepalive();
     const httpServer = createServer((req, res) => {
+      if (serveStatic(req, res)) return;
       handler(req, res).catch((err) => {
         try {
           res.statusCode = 500;

@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self' data:;" />
+  <meta name="theme-color" content="#0a0a0a" />
+  <title>CC Pocket</title>
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <main id="app" data-screen="loading">
+    <section class="screen screen-loading" data-screen-id="loading">
+      <div class="brand">CC Pocket</div>
+      <div class="muted">起動中…</div>
+    </section>
+
+    <section class="screen screen-pin" data-screen-id="pin" hidden>
+      <div class="pin-wrap">
+        <div class="brand">CC Pocket</div>
+        <div class="pin-display" id="pin-display">
+          <span class="pin-dot"></span><span class="pin-dot"></span>
+          <span class="pin-dot"></span><span class="pin-dot"></span>
+        </div>
+        <div class="pin-message" id="pin-message"></div>
+        <div class="keypad">
+          <button class="key" data-pin-key="1">1</button>
+          <button class="key" data-pin-key="2">2</button>
+          <button class="key" data-pin-key="3">3</button>
+          <button class="key" data-pin-key="4">4</button>
+          <button class="key" data-pin-key="5">5</button>
+          <button class="key" data-pin-key="6">6</button>
+          <button class="key" data-pin-key="7">7</button>
+          <button class="key" data-pin-key="8">8</button>
+          <button class="key" data-pin-key="9">9</button>
+          <button class="key key-utility" id="pin-clear">✕</button>
+          <button class="key" data-pin-key="0">0</button>
+          <button class="key key-utility" id="pin-back">←</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="screen screen-error" data-screen-id="error" hidden>
+      <div class="error-wrap">
+        <div class="error-icon">⚠️</div>
+        <div class="error-title">サーバに接続できません</div>
+        <ul class="error-hints">
+          <li>Tailscale が起動していますか？</li>
+          <li>Mac で <code>npm start</code> 中ですか？</li>
+        </ul>
+        <button class="btn-primary" id="error-retry">再試行</button>
+      </div>
+    </section>
+
+    <section class="screen screen-locked" data-screen-id="locked" hidden>
+      <div class="locked-wrap">
+        <div class="locked-icon">🔒</div>
+        <div class="locked-title">ロックされています</div>
+        <div class="locked-countdown">あと <span id="locked-remaining">--:--</span> 後に再試行</div>
+      </div>
+    </section>
+
+    <section class="screen screen-main" data-screen-id="main" hidden>
+      <header class="header">
+        <button class="header-btn" id="drawer-toggle" aria-label="ワークスペース">☰</button>
+        <div class="header-title" id="window-name">—</div>
+        <div class="state-pill" id="state-pill">
+          <span class="state-dot" data-state="idle"></span>
+          <span class="state-label">Idle</span>
+        </div>
+        <button class="header-btn" id="logout-btn" aria-label="ログアウト">⏏</button>
+      </header>
+
+      <div class="drawer" id="drawer" hidden>
+        <div class="drawer-header">ワークスペース</div>
+        <ul class="drawer-list" id="drawer-list"></ul>
+      </div>
+      <div class="drawer-scrim" id="drawer-scrim" hidden></div>
+
+      <section class="log-area" id="log-area"></section>
+
+      <footer class="input-bar">
+        <textarea class="input-field" id="input-field" rows="1" placeholder="メッセージを入力…"></textarea>
+        <button class="btn-primary" id="send-btn">送信</button>
+      </footer>
+
+      <div class="quick-keys" id="quick-keys">
+        <button class="qk" data-qk="y">y</button>
+        <button class="qk" data-qk="n">n</button>
+        <button class="qk" data-qk="1">1</button>
+        <button class="qk" data-qk="2">2</button>
+        <button class="qk" data-qk="3">3</button>
+        <button class="qk" data-qk="Escape">Esc</button>
+        <button class="qk" data-qk="C-c">^C</button>
+        <button class="qk" data-qk="Tab">Tab</button>
+        <button class="qk" data-qk="Up">↑</button>
+        <button class="qk" data-qk="Down">↓</button>
+      </div>
+    </section>
+  </main>
+
+  <script type="module" src="/app.js"></script>
+</body>
+</html>
