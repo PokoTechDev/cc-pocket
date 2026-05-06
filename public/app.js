@@ -184,8 +184,10 @@ function closeDrawer() {
 
 async function sendInputText() {
   const field = $('#input-field');
-  const text = field.value;
-  if (!text || !state.currentId) return;
+  const raw = field.value;
+  if (!raw || !state.currentId) return;
+  // spec/09 Q5: クライアント側で改行を付与。末尾が改行で終わっていなければ追加。
+  const text = raw.endsWith('\n') ? raw : raw + '\n';
   if (new Blob([text]).size > MAX_INPUT_BYTES) {
     appendSystemLine('入力が長すぎます (>8KB)');
     return;
