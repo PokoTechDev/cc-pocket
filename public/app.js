@@ -3,6 +3,7 @@
 
 import { createApi } from '/api.js';
 import { createPinController } from '/pin.js';
+import { parseAnsi } from '/ansi.js';
 
 const MAX_INPUT_BYTES = 8192;
 const RECONNECT_DELAYS_MS = [1000, 3000, 7000, 15000, 30000, 60000];
@@ -151,10 +152,14 @@ function makeDrawerItem(w) {
 function appendChunk(text) {
   const log = $('#log-area');
   const wasAtBottom = (log.scrollHeight - log.scrollTop - log.clientHeight) < 40;
-  const node = document.createElement('span');
-  node.className = 'log-line';
-  node.textContent = text;
-  log.appendChild(node);
+  for (const seg of parseAnsi(text)) {
+    if (!seg.text) continue;
+    const node = document.createElement('span');
+    node.className = 'log-line';
+    if (seg.style) node.style.cssText = seg.style;
+    node.textContent = seg.text;
+    log.appendChild(node);
+  }
   if (wasAtBottom) log.scrollTop = log.scrollHeight;
 }
 

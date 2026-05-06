@@ -7,6 +7,7 @@ const STATIC_FILES = {
   '/app.js': 'app.js',
   '/api.js': 'api.js',
   '/pin.js': 'pin.js',
+  '/ansi.js': 'ansi.js',
   '/style.css': 'style.css',
   '/manifest.webmanifest': 'manifest.webmanifest',
   '/icon.svg': 'icon.svg',
