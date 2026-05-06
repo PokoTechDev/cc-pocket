@@ -8,6 +8,8 @@ const STATIC_FILES = {
   '/api.js': 'api.js',
   '/pin.js': 'pin.js',
   '/ansi.js': 'ansi.js',
+  '/approval.js': 'approval.js',
+  '/drawer.js': 'drawer.js',
   '/style.css': 'style.css',
   '/manifest.webmanifest': 'manifest.webmanifest',
   '/icon.svg': 'icon.svg',

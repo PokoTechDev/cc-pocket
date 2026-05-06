@@ -354,6 +354,96 @@ describe('routes — POST /windows/:id/keys', () => {
   });
 });
 
+describe('routes — POST /windows/:id/approve', () => {
+  const APPROVAL = {
+    patternId: 'p1',
+    detectedAt: 1700,
+    prompt: 'do you want to proceed?',
+    options: [
+      { label: '許可', keystroke: '1', isDefault: true },
+      { label: '常に許可', keystroke: '2', isDefault: false },
+      { label: '拒否', keystroke: '3', isDefault: false },
+    ],
+  };
+
+  test('relays selected keystroke to tmux and clears approval', async () => {
+    const stored = hashPin('1234');
+    await withServer(() => {
+      const deps = defaultDeps(stored);
+      deps.state.setWindows([{ id: '@0', name: 'main' }]);
+      deps.state.setApproval('@0', APPROVAL);
+      return deps;
+    }, async (base, deps) => {
+      const token = await authenticate(base, '1234');
+      const res = await fetch(`${base}/windows/${encodeURIComponent('@0')}/approve`, {
+        method: 'POST',
+        headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+        body: JSON.stringify({ approvalId: 1700, keystroke: '1' }),
+      });
+      assert.equal(res.status, 200);
+      const sent = deps.tmux._calls.find((c) => c.kind === 'sendKey');
+      assert.deepEqual(sent, { kind: 'sendKey', id: '@0', key: '1' });
+      assert.equal(deps.state.getWindow('@0').state, 'streaming');
+      assert.equal(deps.state.getWindow('@0').approval, null);
+    });
+  });
+
+  test('returns 410 stale_approval on detectedAt mismatch', async () => {
+    const stored = hashPin('1234');
+    await withServer(() => {
+      const deps = defaultDeps(stored);
+      deps.state.setWindows([{ id: '@0', name: 'main' }]);
+      deps.state.setApproval('@0', APPROVAL);
+      return deps;
+    }, async (base) => {
+      const token = await authenticate(base, '1234');
+      const res = await fetch(`${base}/windows/${encodeURIComponent('@0')}/approve`, {
+        method: 'POST',
+        headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+        body: JSON.stringify({ approvalId: 9999, keystroke: '1' }),
+      });
+      assert.equal(res.status, 410);
+      const body = await res.json();
+      assert.equal(body.error, 'stale_approval');
+    });
+  });
+
+  test('returns 410 no_active_approval when not awaiting', async () => {
+    const stored = hashPin('1234');
+    await withServer(() => {
+      const deps = defaultDeps(stored);
+      deps.state.setWindows([{ id: '@0', name: 'main' }]);
+      return deps;
+    }, async (base) => {
+      const token = await authenticate(base, '1234');
+      const res = await fetch(`${base}/windows/${encodeURIComponent('@0')}/approve`, {
+        method: 'POST',
+        headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+        body: JSON.stringify({ approvalId: 1700, keystroke: '1' }),
+      });
+      assert.equal(res.status, 410);
+    });
+  });
+
+  test('returns 400 on keystroke not in approval.options', async () => {
+    const stored = hashPin('1234');
+    await withServer(() => {
+      const deps = defaultDeps(stored);
+      deps.state.setWindows([{ id: '@0', name: 'main' }]);
+      deps.state.setApproval('@0', APPROVAL);
+      return deps;
+    }, async (base) => {
+      const token = await authenticate(base, '1234');
+      const res = await fetch(`${base}/windows/${encodeURIComponent('@0')}/approve`, {
+        method: 'POST',
+        headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+        body: JSON.stringify({ approvalId: 1700, keystroke: 'q' }),
+      });
+      assert.equal(res.status, 400);
+    });
+  });
+});
+
 describe('routes — GET /events SSE', () => {
   test('emits snapshot event on connect', async () => {
     const stored = hashPin('1234');

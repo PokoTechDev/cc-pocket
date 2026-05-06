@@ -4,10 +4,17 @@
 import { createApi } from '/api.js';
 import { createPinController } from '/pin.js';
 import { parseAnsi } from '/ansi.js';
+import { createApprovalController } from '/approval.js';
+import { createDrawerController } from '/drawer.js';
 
 const MAX_INPUT_BYTES = 8192;
 const RECONNECT_DELAYS_MS = [1000, 3000, 7000, 15000, 30000, 60000];
-const STATE_LABEL = { idle: 'Idle', streaming: 'Running', error: 'Error' };
+const STATE_LABEL = {
+  idle: 'Idle',
+  streaming: 'Running',
+  awaiting_approval: 'Needs input',
+  error: 'Error',
+};
 
 const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => [...document.querySelectorAll(sel)];
@@ -42,6 +49,7 @@ async function bootMain() {
     if (state.windows.size > 0) state.currentId = [...state.windows.keys()][0];
     renderHeader();
     renderDrawer();
+    renderApproval();
     await loadInitialScreen();
     connectSse();
   } catch {
@@ -83,6 +91,7 @@ function connectSse() {
     for (const w of data.windows) state.windows.set(w.id, w);
     renderHeader();
     renderDrawer();
+    renderApproval();
   });
   state.es.addEventListener('output', (e) => {
     // chunk-based output は Discovery 用ログ。画面表示は screen イベント側で置換する。
@@ -100,12 +109,16 @@ function connectSse() {
     if (windowId === state.currentId) renderScreen(text ?? '');
   });
   state.es.addEventListener('state', (e) => {
-    const { windowId, state: s } = JSON.parse(e.data);
+    const { windowId, state: s, approval } = JSON.parse(e.data);
     const w = state.windows.get(windowId);
     if (w) {
       w.state = s;
+      w.approval = approval ?? null;
       renderDrawerItem(windowId);
-      if (windowId === state.currentId) renderHeader();
+      if (windowId === state.currentId) {
+        renderHeader();
+        renderApproval();
+      }
     }
   });
   state.es.addEventListener('ping', () => { state.reconnectAttempts = 0; });
@@ -118,6 +131,18 @@ function connectSse() {
   };
 }
 
+const approvalCtrl = createApprovalController({
+  api,
+  getCurrentWindow: () => state.windows.get(state.currentId) ?? null,
+  onUnauthorized: () => { api.clearToken(); showScreen('pin'); },
+  appendSystemLine: (msg) => appendSystemLine(msg),
+});
+
+function renderApproval() {
+  approvalCtrl.render();
+  renderHeader();
+}
+
 function renderHeader() {
   const w = state.windows.get(state.currentId);
   $('#window-name').textContent = w ? (w.name || w.id) : '—';
@@ -128,45 +153,19 @@ function renderHeader() {
   label.textContent = STATE_LABEL[s] ?? s;
 }
 
-function renderDrawer() {
-  const list = $('#drawer-list');
-  list.innerHTML = '';
-  for (const w of state.windows.values()) list.appendChild(makeDrawerItem(w));
-}
-
-function renderDrawerItem(windowId) {
-  const list = $('#drawer-list');
-  const old = list.querySelector(`[data-window-id="${CSS.escape(windowId)}"]`);
-  const w = state.windows.get(windowId);
-  if (!w) { old?.remove(); return; }
-  const fresh = makeDrawerItem(w);
-  if (old) old.replaceWith(fresh);
-  else list.appendChild(fresh);
-}
-
-function makeDrawerItem(w) {
-  const li = document.createElement('li');
-  li.className = 'drawer-item';
-  li.dataset.windowId = w.id;
-  if (w.id === state.currentId) li.classList.add('active');
-  li.innerHTML = `
-    <div>
-      <div class="drawer-item-title"></div>
-      <div class="drawer-item-sub"></div>
-    </div>
-    <span class="state-dot" data-state="${w.state ?? 'idle'}"></span>
-  `;
-  li.querySelector('.drawer-item-title').textContent = w.name || w.id;
-  li.querySelector('.drawer-item-sub').textContent = w.id;
-  li.addEventListener('click', () => {
-    state.currentId = w.id;
-    closeDrawer();
+const drawer = createDrawerController({
+  getWindows: () => [...state.windows.values()],
+  getCurrentId: () => state.currentId,
+  onSelect: (id) => {
+    state.currentId = id;
     renderHeader();
-    renderDrawer();
+    drawer.renderAll();
+    renderApproval();
     loadInitialScreen();
-  });
-  return li;
-}
+  },
+});
+const renderDrawer = () => drawer.renderAll();
+const renderDrawerItem = (id) => drawer.renderItem(id);
 
 function appendSystemLine(text) {
   const log = $('#log-area');
@@ -175,16 +174,6 @@ function appendSystemLine(text) {
   node.textContent = `— ${text} —`;
   log.appendChild(node);
   log.scrollTop = log.scrollHeight;
-}
-
-function openDrawer() {
-  $('#drawer').hidden = false;
-  $('#drawer-scrim').hidden = false;
-}
-
-function closeDrawer() {
-  $('#drawer').hidden = true;
-  $('#drawer-scrim').hidden = true;
 }
 
 async function sendInputText() {
@@ -247,8 +236,7 @@ function logout() {
 }
 
 function attachMainListeners() {
-  $('#drawer-toggle').addEventListener('click', openDrawer);
-  $('#drawer-scrim').addEventListener('click', closeDrawer);
+  drawer.attach();
   $('#logout-btn').addEventListener('click', logout);
   $('#send-btn').addEventListener('click', sendInputText);
   $('#input-field').addEventListener('input', autoSizeInput);

@@ -200,6 +200,73 @@ describe('createStateStore — ring buffer', () => {
   });
 });
 
+describe('createStateStore — approval state', () => {
+  const APPROVAL = {
+    patternId: 'p1',
+    detectedAt: 1700,
+    prompt: 'do you want to proceed?',
+    options: [{ label: 'yes', keystroke: '1', isDefault: true }],
+  };
+
+  test('window starts with approval=null and state=idle', () => {
+    const store = createStateStore();
+    store.setWindows([{ id: '0', name: 'main' }]);
+    const w = store.getWindow('0');
+    assert.equal(w.state, 'idle');
+    assert.equal(w.approval, null);
+  });
+
+  test('setApproval transitions state to awaiting_approval and sets approval', () => {
+    const store = createStateStore();
+    store.setWindows([{ id: '0', name: 'main' }]);
+    const ok = store.setApproval('0', APPROVAL);
+    assert.equal(ok, true);
+    const w = store.getWindow('0');
+    assert.equal(w.state, 'awaiting_approval');
+    assert.deepEqual(w.approval, APPROVAL);
+  });
+
+  test('setApproval on unknown window returns false', () => {
+    const store = createStateStore();
+    assert.equal(store.setApproval('99', APPROVAL), false);
+  });
+
+  test('clearApproval transitions back to streaming and nulls approval', () => {
+    const store = createStateStore();
+    store.setWindows([{ id: '0', name: 'main' }]);
+    store.setApproval('0', APPROVAL);
+    store.clearApproval('0');
+    const w = store.getWindow('0');
+    assert.equal(w.state, 'streaming');
+    assert.equal(w.approval, null);
+  });
+
+  test('clearApproval is no-op when not awaiting', () => {
+    const store = createStateStore();
+    store.setWindows([{ id: '0', name: 'main' }]);
+    store.clearApproval('0');
+    assert.equal(store.getWindow('0').state, 'idle');
+  });
+
+  test('appendOutput while awaiting_approval keeps the approval and stays awaiting_approval', () => {
+    const store = createStateStore();
+    store.setWindows([{ id: '0', name: 'main' }]);
+    store.setApproval('0', APPROVAL);
+    store.appendOutput('0', 'extra noise');
+    const w = store.getWindow('0');
+    assert.equal(w.state, 'awaiting_approval');
+    assert.deepEqual(w.approval, APPROVAL);
+  });
+
+  test('removed window also clears approval', () => {
+    const store = createStateStore();
+    store.setWindows([{ id: '0', name: 'main' }]);
+    store.setApproval('0', APPROVAL);
+    store.setWindows([{ id: '1', name: 'other' }]);
+    assert.equal(store.getWindow('0'), null);
+  });
+});
+
 describe('createStateStore — screen snapshots', () => {
   test('getScreen returns null when no snapshot stored', () => {
     const store = createStateStore();

@@ -12,12 +12,14 @@ import { createFileTailer } from './tailer.js';
 import { createSseBroadcaster } from './sse.js';
 import { createRouter } from './routes.js';
 import { createStaticHandler } from './static.js';
+import { createDetector } from './detector.js';
 
 export const PORT = 7700;
 export const SERVER_VERSION = '0.0.0';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const DEFAULT_PIN_FILE = join(__dirname, '..', 'data', 'pin.json');
+const DEFAULT_PATTERNS_FILE = join(__dirname, '..', 'data', 'patterns.json');
 const DEFAULT_PIPE_DIR = join(homedir(), '.cc-pocket', 'pipe');
 const DEFAULT_PUBLIC_DIR = join(__dirname, '..', 'public');
 const TICK_INTERVAL_MS = 1000;
@@ -45,8 +47,20 @@ export function detectTailscaleIp({ exec = execFileSync } = {}) {
   }
 }
 
+function loadPatterns(filepath) {
+  if (!existsSync(filepath)) return [];
+  try {
+    const file = JSON.parse(readFileSync(filepath, 'utf8'));
+    return file.patterns ?? [];
+  } catch (err) {
+    console.error(`[CC Pocket] warn: invalid patterns.json: ${err.message}`);
+    return [];
+  }
+}
+
 export function buildApp({
   pinFile = DEFAULT_PIN_FILE,
+  patternsFile = DEFAULT_PATTERNS_FILE,
   pipeDir = DEFAULT_PIPE_DIR,
   publicDir = DEFAULT_PUBLIC_DIR,
   serverVersion = SERVER_VERSION,
@@ -59,6 +73,7 @@ export function buildApp({
   const tmux = createTmuxDriver();
   const sse = createSseBroadcaster();
   const pinStore = createPinStore(pinFile);
+  const detector = createDetector({ patterns: loadPatterns(patternsFile) });
   const tailers = new Map();
 
   const { handler } = createRouter({
@@ -70,11 +85,38 @@ export function buildApp({
   async function refreshScreen(windowId) {
     try {
       const text = await tmux.captureScreen(windowId);
-      if (state.setScreen(windowId, text)) {
-        sse.broadcast({ event: 'screen', data: { windowId, text } });
-      }
+      if (!state.setScreen(windowId, text)) return;
+      sse.broadcast({ event: 'screen', data: { windowId, text } });
+      runDetectorAndBroadcast(windowId, text);
     } catch (err) {
       console.error(`[CC Pocket] warn: captureScreen failed for ${windowId}: ${err.message}`);
+    }
+  }
+
+  function runDetectorAndBroadcast(windowId, text) {
+    const w = state.getWindow(windowId);
+    if (!w) return;
+    const match = detector.detect(text);
+    if (match) {
+      // 既存の approval と detectedAt が異なる場合のみ更新 (連続検出抑止)
+      const existing = w.approval;
+      if (!existing || existing.patternId !== match.patternId) {
+        state.setApproval(windowId, match);
+        const updated = state.getWindow(windowId);
+        sse.broadcast({
+          event: 'state',
+          data: { windowId, state: updated.state, approval: updated.approval },
+        });
+      }
+      return;
+    }
+    if (w.state === 'awaiting_approval') {
+      state.clearApproval(windowId);
+      const updated = state.getWindow(windowId);
+      sse.broadcast({
+        event: 'state',
+        data: { windowId, state: updated.state, approval: null },
+      });
     }
   }
 

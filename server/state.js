@@ -37,6 +37,7 @@ export function createStateStore({ now = () => Date.now() } = {}) {
           state: 'idle',
           lastActivityAt: t,
           outputBytes: 0,
+          approval: null,
         });
         ensureBuffer(id);
       }
@@ -71,9 +72,11 @@ export function createStateStore({ now = () => Date.now() } = {}) {
     buf.nextSeq += 1;
     trimBuffer(buf);
 
+    // 承認待ち中は state を維持 (出力が来ても streaming に戻さない)
+    const nextState = w.state === 'awaiting_approval' ? 'awaiting_approval' : 'streaming';
     windows.set(id, {
       ...w,
-      state: 'streaming',
+      state: nextState,
       lastActivityAt: t,
       outputBytes: w.outputBytes + bytes,
     });
@@ -91,6 +94,21 @@ export function createStateStore({ now = () => Date.now() } = {}) {
       }
     }
     return transitions;
+  }
+
+  function setApproval(id, approval) {
+    const w = windows.get(id);
+    if (!w) return false;
+    windows.set(id, { ...w, state: 'awaiting_approval', approval });
+    return true;
+  }
+
+  function clearApproval(id) {
+    const w = windows.get(id);
+    if (!w) return false;
+    if (w.state !== 'awaiting_approval') return false;
+    windows.set(id, { ...w, state: 'streaming', approval: null });
+    return true;
   }
 
   function getWindow(id) {
@@ -128,5 +146,7 @@ export function createStateStore({ now = () => Date.now() } = {}) {
     getChunksSince,
     setScreen,
     getScreen,
+    setApproval,
+    clearApproval,
   };
 }

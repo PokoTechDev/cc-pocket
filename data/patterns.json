@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "patterns": [
+    {
+      "id": "claude_code_numbered_v1",
+      "description": "Claude Code v2.1+ tool approval prompts (Bash / Edit / etc.) with 'Esc to cancel · Tab to amend' footer and 3 numbered options",
+      "regex": "Esc\\s+to\\s+cancel\\s*·\\s*Tab\\s+to\\s+amend",
+      "flags": "",
+      "options": [
+        { "label": "許可", "keystroke": "1", "isDefault": true },
+        { "label": "常に許可", "keystroke": "2", "isDefault": false },
+        { "label": "拒否", "keystroke": "3", "isDefault": false }
+      ],
+      "windowSize": 4096
+    }
+  ]
+}

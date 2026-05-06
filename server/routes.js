@@ -4,7 +4,7 @@ import { verifyPin } from './auth.js';
 const MAX_INPUT_BYTES = 8192;
 const MAX_BODY_BYTES = 16_384;
 const KEY_WHITELIST = /^([a-zA-Z0-9]|Enter|Escape|Tab|Up|Down|Left|Right|Backspace|Space|C-[a-zA-Z]|M-[a-zA-Z])$/;
-const WINDOW_PATH_RE = /^\/windows\/([^/]+)\/(log|input|keys|screen)$/;
+const WINDOW_PATH_RE = /^\/windows\/([^/]+)\/(log|input|keys|screen|approve)$/;
 
 function sendJson(res, status, data) {
   res.writeHead(status, { 'Content-Type': 'application/json' });
@@ -128,6 +128,39 @@ export function createRouter({
     }
   }
 
+  async function handleApprove(req, res, windowId) {
+    const w = state.getWindow(windowId);
+    if (!w) return sendJson(res, 404, { error: 'window_not_found' });
+    if (w.state !== 'awaiting_approval' || !w.approval) {
+      return sendJson(res, 410, { error: 'no_active_approval' });
+    }
+    let body;
+    try { body = await readJsonBody(req); }
+    catch { return sendJson(res, 400, { error: 'bad_request' }); }
+    const { approvalId, keystroke } = body ?? {};
+    if (typeof approvalId !== 'number' || typeof keystroke !== 'string') {
+      return sendJson(res, 400, { error: 'bad_request' });
+    }
+    if (w.approval.detectedAt !== approvalId) {
+      return sendJson(res, 410, { error: 'stale_approval' });
+    }
+    if (!w.approval.options.some((o) => o.keystroke === keystroke)) {
+      return sendJson(res, 400, { error: 'bad_request', reason: 'invalid_keystroke' });
+    }
+    try {
+      await tmux.sendKey(windowId, keystroke);
+      state.clearApproval(windowId);
+      const updated = state.getWindow(windowId);
+      sse.broadcast({
+        event: 'state',
+        data: { windowId, state: updated.state, approval: null },
+      });
+      return sendJson(res, 200, { ok: true });
+    } catch (err) {
+      return sendJson(res, 503, { error: 'tmux_unavailable', message: err.message });
+    }
+  }
+
   async function handleKeys(req, res, windowId) {
     if (!state.getWindow(windowId)) {
       return sendJson(res, 404, { error: 'window_not_found' });
@@ -193,6 +226,7 @@ export function createRouter({
       if (method === 'GET' && action === 'screen') return handleScreen(res, windowId);
       if (method === 'POST' && action === 'input') return handleInput(req, res, windowId);
       if (method === 'POST' && action === 'keys') return handleKeys(req, res, windowId);
+      if (method === 'POST' && action === 'approve') return handleApprove(req, res, windowId);
     }
 
     return sendJson(res, 404, { error: 'not_found' });
