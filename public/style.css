@@ -226,7 +226,8 @@ html, body {
   border-radius: 12px;
   color: var(--fg);
   padding: 10px 12px;
-  font: 14px/1.4 inherit;
+  /* 16px 未満だと iOS Safari がフォーカス時に自動ズームしてレイアウトが崩れる */
+  font: 16px/1.4 inherit;
   resize: none;
   max-height: 120px;
 }
