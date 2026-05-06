@@ -253,9 +253,9 @@ function attachMainListeners() {
   $('#send-btn').addEventListener('click', sendInputText);
   $('#input-field').addEventListener('input', autoSizeInput);
   $('#input-field').addEventListener('keydown', (e) => {
-    // IME 変換中の Enter (確定キー) は送信に変換しない。
-    // e.isComposing は最新仕様、keyCode 229 は Safari 含むレガシーフォールバック。
-    if (e.key === 'Enter' && !e.shiftKey && !e.isComposing && e.keyCode !== 229) {
+    // LINE 方式: Enter は改行、送信は明示的に Cmd/Ctrl+Enter または送信ボタンのみ。
+    // モバイルでの誤送信ゼロ + IME 変換確定の Enter を取り逃しても安全。
+    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && !e.isComposing && e.keyCode !== 229) {
       e.preventDefault();
       sendInputText();
     }
