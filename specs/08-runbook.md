@@ -91,10 +91,10 @@ npm start
 出力例:
 ```
 [CC Pocket] Tailscale IP: 100.64.1.23
-[CC Pocket] Listening on http://100.64.1.23:7000
+[CC Pocket] Listening on http://100.64.1.23:7700
 [CC Pocket] tmux session: cc-pocket (windows: 0)
 [CC Pocket] PIN: 4-digit (set in data/pin.json)
-[CC Pocket] Open from phone: http://100.64.1.23:7000
+[CC Pocket] Open from phone: http://100.64.1.23:7700
 ```
 
 ### 8.3.2 Claude Codeを起動（tmuxセッション内）
@@ -111,7 +111,7 @@ claude
 ### 8.3.3 スマホからアクセス
 
 1. Tailscale ON確認
-2. ブラウザで `http://100.64.1.23:7000` にアクセス
+2. ブラウザで `http://100.64.1.23:7700` にアクセス
 3. 初回はホーム画面に追加（PWAインストール）
 4. PIN入力
 5. メイン画面表示
@@ -136,7 +136,8 @@ claude
 |------|-----|------|
 | `Tailscale IP not found` | Tailscale未起動 | Mac側で起動。`tailscale up` |
 | `tmux session not found` | tmux未起動 | `tmux new -s cc-pocket -d` で先に作る |
-| `EADDRINUSE` | ポート占有 | `lsof -i :7000` で確認、別ポート起動 |
+| `EADDRINUSE` | ポート占有 | `lsof -i :7700` で確認、別ポート起動 |
+| `localhost:7700` で 403 | AirPlay Receiver が port 7000 を wildcard bind するが Q1 改訂後は無関係。残る場合は他プロセス調査 | `lsof -i :7700` |
 
 ### 8.5.2 スマホから接続できない
 

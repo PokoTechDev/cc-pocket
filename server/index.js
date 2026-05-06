@@ -13,7 +13,7 @@ import { createSseBroadcaster } from './sse.js';
 import { createRouter } from './routes.js';
 import { createStaticHandler } from './static.js';
 
-export const PORT = 7000;
+export const PORT = 7700;
 export const SERVER_VERSION = '0.0.0';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
