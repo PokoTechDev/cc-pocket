@@ -2,10 +2,10 @@
   "version": 1,
   "patterns": [
     {
-      "id": "claude_code_numbered_v1",
-      "description": "Claude Code v2.1+ tool approval prompts (Bash / Edit / etc.) with 'Esc to cancel · Tab to amend' footer and 3 numbered options",
-      "regex": "Esc\\s+to\\s+cancel\\s*·\\s*Tab\\s+to\\s+amend",
-      "flags": "",
+      "id": "claude_code_numbered_v2",
+      "description": "Claude Code v2.1+ tool approval — anchor on the 3-numbered-option block with ❯ marker on option 1. Covers Bash/Edit/Write/Fetch (footer text varies, but option layout is consistent)",
+      "regex": "❯\\s+1\\.[\\s\\S]{1,500}?^\\s+2\\.[\\s\\S]{1,500}?^\\s+3\\.",
+      "flags": "m",
       "options": [
         { "label": "許可", "keystroke": "1", "isDefault": true },
         { "label": "常に許可", "keystroke": "2", "isDefault": false },
