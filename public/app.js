@@ -190,9 +190,10 @@ function closeDrawer() {
 async function sendInputText() {
   const field = $('#input-field');
   const raw = field.value;
-  if (!raw || !state.currentId) return;
-  // spec/09 Q5: クライアント側で改行を付与。末尾が改行で終わっていなければ追加。
-  const text = raw.endsWith('\n') ? raw : raw + '\n';
+  if (!state.currentId) return;
+  // 末尾改行は除去 (literal \\n は TUI で「テキスト中の改行」になる)。
+  // 代わりに Enter key event を別 POST で送ることで shell も TUI も統一動作。
+  const text = raw.replace(/\n+$/, '');
   if (new Blob([text]).size > MAX_INPUT_BYTES) {
     appendSystemLine('入力が長すぎます (>8KB)');
     return;
@@ -200,15 +201,20 @@ async function sendInputText() {
   const btn = $('#send-btn');
   btn.disabled = true;
   try {
-    const r = await api.request('POST', `/windows/${encodeURIComponent(state.currentId)}/input`, { text });
-    if (r.status === 200) {
+    if (text) {
+      const r1 = await api.request('POST', `/windows/${encodeURIComponent(state.currentId)}/input`, { text });
+      if (r1.status === 401) { api.clearToken(); showScreen('pin'); return; }
+      if (r1.status !== 200) { appendSystemLine(`送信失敗 (${r1.status})`); return; }
+    }
+    const r2 = await api.request('POST', `/windows/${encodeURIComponent(state.currentId)}/keys`, { keys: 'Enter' });
+    if (r2.status === 200) {
       field.value = '';
       autoSizeInput();
-    } else if (r.status === 401) {
+    } else if (r2.status === 401) {
       api.clearToken();
       showScreen('pin');
     } else {
-      appendSystemLine(`送信失敗 (${r.status})`);
+      appendSystemLine(`Enter送信失敗 (${r2.status})`);
     }
   } catch {
     appendSystemLine('送信失敗 (ネットワーク)');
