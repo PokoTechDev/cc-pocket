@@ -84,7 +84,7 @@ CC Pocketは「PCのClaude Codeセッションを、スマホネイティブUI�
 
 ### Phase 0: セットアップ (1日)
 
-- [ ] このリポジトリをGitHub publicで作成
+- [x] このリポジトリをGitHub publicで作成
 - [ ] Tailscale on Mac + iPhone セットアップ確認
 - [ ] tmux 3.3+ インストール確認
 - [ ] `~/.tmux.conf` に永続`pipe-pane` hook追加（[`specs/08-runbook.md`](./specs/08-runbook.md) §8.2.4）

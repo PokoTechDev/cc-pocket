@@ -1,50 +1,5 @@
 # CLAUDE.md — CC Pocket Project Instructions
 
----
-
-## 🚀 BOOTSTRAP — 初回セッションで最優先で実行
-
-**このセクションは未完了。完了したら本セクション全体を削除すること。**
-
-このプロジェクトはまだGitHubリポジトリ化されていない。新規セッション起動時、最初のユーザ発話を待たずに以下を順に質問・実行する。
-
-### Step 1: 質問
-
-ユーザに以下を一問ずつ確認する（一括ではなく順に）:
-
-1. **GitHub repo owner** — 推奨: `pokotech-dev`（`pokotech.dev@gmail.com`紐付けアカウント）。別Orgの場合はそちらを聞く
-2. **リポジトリ名** — 推奨: `cc-pocket`（既定）
-3. **ライセンス** — 推奨: `MIT`。他に `Apache-2.0`/`UNLICENSED`等の選択肢あり
-
-### Step 2: 実行（全質問に回答が揃ったら）
-
-```bash
-# 1. ライセンスファイル作成（選択に応じて）
-#    MITの場合は標準テンプレートを LICENSE に書き出し、
-#    package.json の "license" を "UNLICENSED" → 選択値に更新
-
-# 2. git init + 初回コミット
-git init
-git add .
-git commit -m "chore: initial commit — PRD, SDD spec, project skeleton
-
-Spec/PRDはモバイルからClaude Codeを操作するためのSDD実装契約。
-v0実装着手前のpre-implementation状態。詳細は HANDOFF.md 参照。"
-
-# 3. GitHub publicリポジトリ作成 + push
-gh repo create <owner>/<name> --public --source=. --remote=origin --push
-```
-
-実行前に**ユーザに最終確認**を取ること（外部副作用あり）。
-
-### Step 3: 完了処理
-
-- このBOOTSTRAPセクション（区切り線含む）をCLAUDE.mdから削除
-- HANDOFF.md §4 Phase 0 のチェックリスト1項目目「GitHub publicで作成」にチェック
-- ユーザに「ブートストラップ完了。Phase 1 v0実装に進めます」と案内
-
----
-
 ## Project Summary
 
 CC Pocket is a remote controller that lets you operate a Mac-side Claude Code session from your phone (PWA). Real-time output streaming, input from mobile, native UI buttons for approval prompts, multi-window state indicators. Tailscale-only access for security.
