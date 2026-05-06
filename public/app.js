@@ -253,7 +253,12 @@ function attachMainListeners() {
   $('#send-btn').addEventListener('click', sendInputText);
   $('#input-field').addEventListener('input', autoSizeInput);
   $('#input-field').addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendInputText(); }
+    // IME 変換中の Enter (確定キー) は送信に変換しない。
+    // e.isComposing は最新仕様、keyCode 229 は Safari 含むレガシーフォールバック。
+    if (e.key === 'Enter' && !e.shiftKey && !e.isComposing && e.keyCode !== 229) {
+      e.preventDefault();
+      sendInputText();
+    }
   });
   for (const btn of $$('.qk')) {
     btn.addEventListener('click', () => sendKey(btn.dataset.qk));
