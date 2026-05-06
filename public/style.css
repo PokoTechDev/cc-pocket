@@ -37,6 +37,12 @@ html, body {
   color: var(--fg);
   font: 16px/1.4 -apple-system, BlinkMacSystemFont, "Helvetica Neue", system-ui, sans-serif;
   overscroll-behavior: none;
+  -webkit-text-size-adjust: 100%;
+}
+
+/* iOS Safari の input focus 時 auto-zoom 抑制: 16px 未満で発動するため全 input 系を 16px 下限に */
+input, textarea, select {
+  font-size: max(16px, 1em);
 }
 
 #app, .screen { height: 100%; width: 100%; }
@@ -226,8 +232,10 @@ html, body {
   border-radius: 12px;
   color: var(--fg);
   padding: 10px 12px;
-  /* 16px 未満だと iOS Safari がフォーカス時に自動ズームしてレイアウトが崩れる */
-  font: 16px/1.4 inherit;
+  /* font shorthand は解釈差を生むので個別指定。16px 未満で iOS Safari が auto-zoom する */
+  font-family: inherit;
+  font-size: 16px;
+  line-height: 1.4;
   resize: none;
   max-height: 120px;
 }

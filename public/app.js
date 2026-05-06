@@ -269,6 +269,21 @@ function attachMainListeners() {
   });
 }
 
+// iOS Safari は font-size 16px だけでは auto-zoom が完全に止まらないケースがあるため
+// maximum-scale=1 を動的注入して focus 起因のズームを抑える。iOS は manual pinch-zoom を
+// 引き続き許可するため accessibility への影響なし。Android では pinch-zoom が止まるので
+// iOS 限定で適用する。
+function applyIosViewportLock() {
+  if (!/iPhone|iPad|iPod/.test(navigator.userAgent)) return;
+  const meta = document.querySelector('meta[name=viewport]');
+  if (!meta) return;
+  meta.setAttribute(
+    'content',
+    'width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover',
+  );
+}
+
+applyIosViewportLock();
 pin.attach();
 attachMainListeners();
 showScreen('pin');
