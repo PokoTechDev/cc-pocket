@@ -147,6 +147,17 @@ describe('createTmuxDriver — sendKey (mocked)', () => {
   });
 });
 
+describe('createTmuxDriver — pipePane (mocked)', () => {
+  test('issues pipe-pane -O with given shell command', async () => {
+    const { exec, calls } = createMockExec(() => ({}));
+    const tmux = createTmuxDriver({ exec });
+    await tmux.pipePane('@0', 'cat >> /tmp/x.log');
+    assert.deepEqual(calls[0].args, [
+      'pipe-pane', '-O', '-t', 'cc-pocket:@0', 'cat >> /tmp/x.log',
+    ]);
+  });
+});
+
 describe('createTmuxDriver — capturePane (mocked)', () => {
   test('default captures last 2000 lines via -S -2000', async () => {
     const { exec, calls } = createMockExec(() => ({ stdout: 'line1\nline2\n' }));

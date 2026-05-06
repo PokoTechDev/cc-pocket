@@ -80,6 +80,15 @@ export function buildApp({
     tailers.clear();
   }
 
+  async function ensurePipePane(windowId) {
+    const filepath = join(pipeDir, `${windowId}.log`);
+    const cmd = `cat >> ${filepath}`;
+    try { await tmux.pipePane(windowId, cmd); }
+    catch (err) {
+      console.error(`[CC Pocket] warn: pipe-pane failed for ${windowId}: ${err.message}`);
+    }
+  }
+
   async function syncWindows() {
     const windows = await tmux.listWindows();
     state.setWindows(windows);
@@ -89,7 +98,10 @@ export function buildApp({
         tailers.delete(id);
       }
     }
-    for (const w of windows) startTailerForWindow(w.id);
+    for (const w of windows) {
+      await ensurePipePane(w.id);
+      startTailerForWindow(w.id);
+    }
   }
 
   async function start() {

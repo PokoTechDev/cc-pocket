@@ -68,6 +68,10 @@ export function createTmuxDriver({ session = TMUX_SESSION_DEFAULT, exec = execFi
     ]);
   }
 
+  async function pipePane(windowId, shellCommand) {
+    await runTmux(exec, ['pipe-pane', '-O', '-t', target(windowId), shellCommand]);
+  }
+
   return {
     session,
     sessionExists,
@@ -76,5 +80,6 @@ export function createTmuxDriver({ session = TMUX_SESSION_DEFAULT, exec = execFi
     sendText,
     sendKey,
     capturePane,
+    pipePane,
   };
 }
