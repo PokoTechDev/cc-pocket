@@ -133,16 +133,22 @@ export function buildApp({
       }
     }, TICK_INTERVAL_MS);
     if (tickTimer.unref) tickTimer.unref();
+    let stopping = null;
     return {
       ip: bindIp,
       port,
       httpServer,
       stop: async () => {
-        clearInterval(tickTimer);
-        stopKeepalive();
-        stopTailers();
-        sse.shutdown();
-        await new Promise((resolve) => httpServer.close(resolve));
+        if (stopping) return stopping;
+        stopping = (async () => {
+          clearInterval(tickTimer);
+          stopKeepalive();
+          stopTailers();
+          sse.shutdown();
+          httpServer.closeAllConnections?.();
+          await new Promise((resolve) => httpServer.close(() => resolve()));
+        })();
+        return stopping;
       },
     };
   }
@@ -154,13 +160,23 @@ if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
   const app = buildApp();
   app.start().then((running) => {
     console.log(`[CC Pocket] info: listening on http://${running.ip}:${running.port}`);
-    const shutdown = async (signal) => {
+    const shutdown = (signal) => {
       console.log(`[CC Pocket] info: ${signal} received, shutting down...`);
-      await running.stop();
-      process.exit(0);
+      const forceExit = setTimeout(() => {
+        console.error('[CC Pocket] warn: shutdown timeout, force exit');
+        process.exit(1);
+      }, 3000);
+      forceExit.unref?.();
+      running.stop().then(() => {
+        clearTimeout(forceExit);
+        process.exit(0);
+      }).catch((err) => {
+        console.error(`[CC Pocket] error: shutdown failed: ${err.message}`);
+        process.exit(1);
+      });
     };
-    process.on('SIGINT', () => shutdown('SIGINT'));
-    process.on('SIGTERM', () => shutdown('SIGTERM'));
+    process.once('SIGINT', () => shutdown('SIGINT'));
+    process.once('SIGTERM', () => shutdown('SIGTERM'));
   }).catch((err) => {
     console.error(`[CC Pocket] error: ${err.message}`);
     process.exit(1);
