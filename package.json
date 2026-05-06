@@ -10,7 +10,8 @@
   "scripts": {
     "start": "node server/index.js",
     "set-pin": "node scripts/set-pin.js",
-    "gen-vapid": "node scripts/gen-vapid.js"
+    "gen-vapid": "node scripts/gen-vapid.js",
+    "test": "node --test"
   },
   "dependencies": {},
   "devDependencies": {},
