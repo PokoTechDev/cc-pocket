@@ -147,6 +147,29 @@ describe('createTmuxDriver — sendKey (mocked)', () => {
   });
 });
 
+describe('createTmuxDriver — captureScreen (mocked)', () => {
+  test('captures visible pane with -e (ANSI) and -J (join wrapped lines)', async () => {
+    const { exec, calls } = createMockExec(() => ({ stdout: 'line1\nline2\n' }));
+    const tmux = createTmuxDriver({ exec });
+    const out = await tmux.captureScreen('@0');
+    assert.equal(out, 'line1\nline2\n');
+    assert.deepEqual(calls[0].args, [
+      'capture-pane', '-p', '-e', '-J', '-t', 'cc-pocket:@0',
+    ]);
+  });
+});
+
+describe('createTmuxDriver — capturePane with ansi flag (mocked)', () => {
+  test('passes -e when ansi=true', async () => {
+    const { exec, calls } = createMockExec(() => ({ stdout: '' }));
+    const tmux = createTmuxDriver({ exec });
+    await tmux.capturePane('@0', { ansi: true, lines: 100 });
+    assert.deepEqual(calls[0].args, [
+      'capture-pane', '-p', '-t', 'cc-pocket:@0', '-e', '-S', '-100',
+    ]);
+  });
+});
+
 describe('createTmuxDriver — pipePane (mocked)', () => {
   test('issues pipe-pane -O with given shell command', async () => {
     const { exec, calls } = createMockExec(() => ({}));

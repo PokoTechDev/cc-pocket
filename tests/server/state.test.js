@@ -199,3 +199,32 @@ describe('createStateStore — ring buffer', () => {
     assert.equal(store.getChunksSince('99', null), null);
   });
 });
+
+describe('createStateStore — screen snapshots', () => {
+  test('getScreen returns null when no snapshot stored', () => {
+    const store = createStateStore();
+    store.setWindows([{ id: '0', name: 'main' }]);
+    assert.equal(store.getScreen('0'), null);
+  });
+
+  test('setScreen stores text retrievable by getScreen', () => {
+    const store = createStateStore();
+    store.setWindows([{ id: '0', name: 'main' }]);
+    const ok = store.setScreen('0', 'hello\nworld');
+    assert.equal(ok, true);
+    assert.equal(store.getScreen('0'), 'hello\nworld');
+  });
+
+  test('setScreen on unknown window returns false', () => {
+    const store = createStateStore();
+    assert.equal(store.setScreen('99', 'x'), false);
+  });
+
+  test('removed window also clears screen', () => {
+    const store = createStateStore();
+    store.setWindows([{ id: '0', name: 'main' }]);
+    store.setScreen('0', 'kept');
+    store.setWindows([{ id: '1', name: 'other' }]);
+    assert.equal(store.getScreen('0'), null);
+  });
+});

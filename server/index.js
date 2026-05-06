@@ -21,6 +21,7 @@ const DEFAULT_PIN_FILE = join(__dirname, '..', 'data', 'pin.json');
 const DEFAULT_PIPE_DIR = join(homedir(), '.cc-pocket', 'pipe');
 const DEFAULT_PUBLIC_DIR = join(__dirname, '..', 'public');
 const TICK_INTERVAL_MS = 1000;
+const SCREEN_DEBOUNCE_MS = 120;
 
 export function createPinStore(filepath) {
   return {
@@ -65,11 +66,34 @@ export function buildApp({
   });
   const serveStatic = createStaticHandler(publicDir);
 
+  const screenTimers = new Map();
+  async function refreshScreen(windowId) {
+    try {
+      const text = await tmux.captureScreen(windowId);
+      if (state.setScreen(windowId, text)) {
+        sse.broadcast({ event: 'screen', data: { windowId, text } });
+      }
+    } catch (err) {
+      console.error(`[CC Pocket] warn: captureScreen failed for ${windowId}: ${err.message}`);
+    }
+  }
+
+  function scheduleScreenRefresh(windowId) {
+    if (screenTimers.has(windowId)) return;
+    const t = setTimeout(() => {
+      screenTimers.delete(windowId);
+      refreshScreen(windowId);
+    }, SCREEN_DEBOUNCE_MS);
+    if (t.unref) t.unref();
+    screenTimers.set(windowId, t);
+  }
+
   function startTailerForWindow(windowId) {
     if (tailers.has(windowId)) return;
     const tailer = createFileTailer(join(pipeDir, `${windowId}.log`), (text) => {
       const chunk = state.appendOutput(windowId, text);
       if (chunk) sse.broadcast({ event: 'output', id: chunk.seq, data: chunk });
+      scheduleScreenRefresh(windowId);
     });
     tailer.start();
     tailers.set(windowId, tailer);
@@ -101,6 +125,7 @@ export function buildApp({
     for (const w of windows) {
       await ensurePipePane(w.id);
       startTailerForWindow(w.id);
+      await refreshScreen(w.id);
     }
   }
 
@@ -144,6 +169,8 @@ export function buildApp({
           clearInterval(tickTimer);
           stopKeepalive();
           stopTailers();
+          for (const t of screenTimers.values()) clearTimeout(t);
+          screenTimers.clear();
           sse.shutdown();
           httpServer.closeAllConnections?.();
           await new Promise((resolve) => httpServer.close(() => resolve()));

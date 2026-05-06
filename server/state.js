@@ -5,6 +5,7 @@ export const RING_BUFFER_MAX_BYTES = 2_097_152;
 export function createStateStore({ now = () => Date.now() } = {}) {
   const windows = new Map();
   const buffers = new Map();
+  const screens = new Map();
 
   function ensureBuffer(id) {
     if (!buffers.has(id)) {
@@ -19,6 +20,7 @@ export function createStateStore({ now = () => Date.now() } = {}) {
       if (!newIds.has(id)) {
         windows.delete(id);
         buffers.delete(id);
+        screens.delete(id);
       }
     }
     const t = now();
@@ -107,6 +109,16 @@ export function createStateStore({ now = () => Date.now() } = {}) {
     return buf.chunks.filter((c) => c.seq > since);
   }
 
+  function setScreen(id, text) {
+    if (!windows.has(id)) return false;
+    screens.set(id, text);
+    return true;
+  }
+
+  function getScreen(id) {
+    return screens.has(id) ? screens.get(id) : null;
+  }
+
   return {
     setWindows,
     appendOutput,
@@ -114,5 +126,7 @@ export function createStateStore({ now = () => Date.now() } = {}) {
     getWindow,
     listWindows,
     getChunksSince,
+    setScreen,
+    getScreen,
   };
 }

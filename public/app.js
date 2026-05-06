@@ -42,20 +42,35 @@ async function bootMain() {
     if (state.windows.size > 0) state.currentId = [...state.windows.keys()][0];
     renderHeader();
     renderDrawer();
-    await loadInitialLog();
+    await loadInitialScreen();
     connectSse();
   } catch {
     showScreen('error');
   }
 }
 
-async function loadInitialLog() {
+async function loadInitialScreen() {
   if (!state.currentId) return;
-  const r = await api.request('GET', `/windows/${encodeURIComponent(state.currentId)}/log`);
-  $('#log-area').innerHTML = '';
+  const r = await api.request('GET', `/windows/${encodeURIComponent(state.currentId)}/screen`);
   if (r.status === 200) {
-    for (const c of r.body.chunks) appendChunk(c.text);
+    renderScreen(r.body.text ?? '');
+  } else {
+    $('#log-area').innerHTML = '';
   }
+}
+
+function renderScreen(text) {
+  const log = $('#log-area');
+  log.innerHTML = '';
+  for (const seg of parseAnsi(text)) {
+    if (!seg.text) continue;
+    const node = document.createElement('span');
+    node.className = 'log-line';
+    if (seg.style) node.style.cssText = seg.style;
+    node.textContent = seg.text;
+    log.appendChild(node);
+  }
+  log.scrollTop = log.scrollHeight;
 }
 
 function connectSse() {
@@ -70,8 +85,8 @@ function connectSse() {
     renderDrawer();
   });
   state.es.addEventListener('output', (e) => {
+    // chunk-based output は Discovery 用ログ。画面表示は screen イベント側で置換する。
     const chunk = JSON.parse(e.data);
-    if (chunk.windowId === state.currentId) appendChunk(chunk.text);
     const w = state.windows.get(chunk.windowId);
     if (w) {
       w.state = 'streaming';
@@ -79,6 +94,10 @@ function connectSse() {
       renderDrawerItem(chunk.windowId);
       if (chunk.windowId === state.currentId) renderHeader();
     }
+  });
+  state.es.addEventListener('screen', (e) => {
+    const { windowId, text } = JSON.parse(e.data);
+    if (windowId === state.currentId) renderScreen(text ?? '');
   });
   state.es.addEventListener('state', (e) => {
     const { windowId, state: s } = JSON.parse(e.data);
@@ -144,23 +163,9 @@ function makeDrawerItem(w) {
     closeDrawer();
     renderHeader();
     renderDrawer();
-    loadInitialLog();
+    loadInitialScreen();
   });
   return li;
-}
-
-function appendChunk(text) {
-  const log = $('#log-area');
-  const wasAtBottom = (log.scrollHeight - log.scrollTop - log.clientHeight) < 40;
-  for (const seg of parseAnsi(text)) {
-    if (!seg.text) continue;
-    const node = document.createElement('span');
-    node.className = 'log-line';
-    if (seg.style) node.style.cssText = seg.style;
-    node.textContent = seg.text;
-    log.appendChild(node);
-  }
-  if (wasAtBottom) log.scrollTop = log.scrollHeight;
 }
 
 function appendSystemLine(text) {

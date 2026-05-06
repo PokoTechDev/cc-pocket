@@ -4,7 +4,7 @@ import { verifyPin } from './auth.js';
 const MAX_INPUT_BYTES = 8192;
 const MAX_BODY_BYTES = 16_384;
 const KEY_WHITELIST = /^([a-zA-Z0-9]|Enter|Escape|Tab|Up|Down|Left|Right|Backspace|Space|C-[a-zA-Z]|M-[a-zA-Z])$/;
-const WINDOW_PATH_RE = /^\/windows\/([^/]+)\/(log|input|keys)$/;
+const WINDOW_PATH_RE = /^\/windows\/([^/]+)\/(log|input|keys|screen)$/;
 
 function sendJson(res, status, data) {
   res.writeHead(status, { 'Content-Type': 'application/json' });
@@ -101,6 +101,11 @@ export function createRouter({
     return sendJson(res, 200, { windowId, chunks, truncated: false });
   }
 
+  function handleScreen(res, windowId) {
+    if (!state.getWindow(windowId)) return sendJson(res, 404, { error: 'window_not_found' });
+    return sendJson(res, 200, { windowId, text: state.getScreen(windowId) ?? '' });
+  }
+
   async function handleInput(req, res, windowId) {
     if (!state.getWindow(windowId)) {
       return sendJson(res, 404, { error: 'window_not_found' });
@@ -185,6 +190,7 @@ export function createRouter({
       const windowId = decodeURIComponent(m[1]);
       const action = m[2];
       if (method === 'GET' && action === 'log') return handleLog(res, url, windowId);
+      if (method === 'GET' && action === 'screen') return handleScreen(res, windowId);
       if (method === 'POST' && action === 'input') return handleInput(req, res, windowId);
       if (method === 'POST' && action === 'keys') return handleKeys(req, res, windowId);
     }

@@ -61,10 +61,16 @@ export function createTmuxDriver({ session = TMUX_SESSION_DEFAULT, exec = execFi
     await runTmux(exec, ['send-keys', '-t', target(windowId), keyName]);
   }
 
-  async function capturePane(windowId, { lines = 2000 } = {}) {
+  async function capturePane(windowId, { lines = 2000, ansi = false } = {}) {
+    const args = ['capture-pane', '-p', '-t', target(windowId)];
+    if (ansi) args.push('-e');
+    args.push('-S', `-${lines}`);
+    return runTmux(exec, args);
+  }
+
+  async function captureScreen(windowId) {
     return runTmux(exec, [
-      'capture-pane', '-p', '-t', target(windowId),
-      '-S', `-${lines}`,
+      'capture-pane', '-p', '-e', '-J', '-t', target(windowId),
     ]);
   }
 
@@ -80,6 +86,7 @@ export function createTmuxDriver({ session = TMUX_SESSION_DEFAULT, exec = execFi
     sendText,
     sendKey,
     capturePane,
+    captureScreen,
     pipePane,
   };
 }
