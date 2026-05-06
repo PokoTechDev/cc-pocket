@@ -1,0 +1,18 @@
+{
+  "name": "cc-pocket",
+  "version": "0.0.0",
+  "description": "Remote controller for Mac-side Claude Code from mobile (PWA + tmux + SSE).",
+  "type": "module",
+  "private": true,
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node server/index.js",
+    "set-pin": "node scripts/set-pin.js",
+    "gen-vapid": "node scripts/gen-vapid.js"
+  },
+  "dependencies": {},
+  "devDependencies": {},
+  "license": "MIT"
+}

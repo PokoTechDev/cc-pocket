@@ -1,0 +1,30 @@
+# Node
+node_modules/
+npm-debug.log*
+.npm
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+
+# Claude Code local settings (per-user, not for commit)
+.claude/settings.local.json
+
+# Secrets / runtime data
+data/pin.json
+data/vapid.json
+data/samples/
+
+# Local dev artifacts
+*.log
+.env
+.env.*
+
+# Build output (none expected, reserved)
+dist/
+build/
