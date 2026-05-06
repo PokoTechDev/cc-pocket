@@ -41,9 +41,10 @@ node scripts/gen-vapid.js
 
 ```tmux
 # CC Pocket: pipe-pane permanent recording for cc-pocket session
-set-hook -g session-window-created 'if -F "#{==:#{session_name},cc-pocket}" "pipe-pane -O \"cat >> #{HOME}/.cc-pocket/pipe/#{window_id}.log\""'
-set-hook -g window-pane-changed   'if -F "#{==:#{session_name},cc-pocket}" "pipe-pane -O \"cat >> #{HOME}/.cc-pocket/pipe/#{window_id}.log\""'
+set-hook -g window-linked 'if -F "#{==:#{session_name},cc-pocket}" "pipe-pane -O \"cat >> #{HOME}/.cc-pocket/pipe/#{window_id}.log\""'
 ```
+
+このフックはサーバ停止中に作られる新規 window のためのフォールバック。サーバ稼働中は `server/index.js` 側で各 window に明示的に `pipe-pane` を張る (spec/04 §4.2)。
 
 リロード:
 ```bash
