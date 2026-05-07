@@ -31,13 +31,15 @@
 }
 
 html {
-  /* デバイス幅に応じて 15-18px の範囲で base font をスケール (rem 派生も全部追従) */
-  font-size: clamp(15px, calc(0.9rem + 0.3vw), 18px);
+  height: 100%;
+  /* base font は viewport 幅に応じて 15-18px。ルートの rem 自己参照を避けて px で表現 */
+  font-size: clamp(15px, calc(14px + 0.3vw), 18px);
 }
 body {
   margin: 0;
   padding: 0;
   height: 100%;
+  overflow: hidden;
   background: var(--bg);
   color: var(--fg);
   font: 1rem/1.4 -apple-system, BlinkMacSystemFont, "Helvetica Neue", system-ui, sans-serif;
