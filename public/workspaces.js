@@ -1,8 +1,11 @@
 // Workspaces launcher modal — spec/03 §3.5, spec/06 §6.3.2
 
 const $ = (sel) => document.querySelector(sel);
+const $$ = (sel) => [...document.querySelectorAll(sel)];
 
 export function createWorkspacesController({ api, onOpened, onUnauthorized }) {
+  let mode = 'resume';
+
   function open() {
     $('#ws-modal').hidden = false;
     $('#ws-modal-scrim').hidden = false;
@@ -53,7 +56,12 @@ export function createWorkspacesController({ api, onOpened, onUnauthorized }) {
     itemEl.classList.add('selecting');
     setStatus('起動中…');
     let res;
-    try { res = await api.request('POST', '/workspaces/open', { name }); }
+    try {
+      res = await api.request('POST', '/workspaces/open', {
+        name,
+        fresh: mode === 'fresh',
+      });
+    }
     catch { setStatus('起動失敗 (ネットワーク)'); itemEl.classList.remove('selecting'); return; }
     if (res.status === 200) {
       close();
@@ -65,10 +73,20 @@ export function createWorkspacesController({ api, onOpened, onUnauthorized }) {
     itemEl.classList.remove('selecting');
   }
 
+  function setMode(next) {
+    mode = next;
+    for (const btn of $$('.modal-mode-btn')) {
+      btn.classList.toggle('active', btn.dataset.mode === next);
+    }
+  }
+
   function attach() {
     $('#ws-open-btn').addEventListener('click', open);
     $('#ws-modal-scrim').addEventListener('click', close);
     $('#ws-modal-close').addEventListener('click', close);
+    for (const btn of $$('.modal-mode-btn')) {
+      btn.addEventListener('click', () => setMode(btn.dataset.mode));
+    }
   }
 
   return { attach, open, close };

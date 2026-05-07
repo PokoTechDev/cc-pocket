@@ -200,10 +200,12 @@ export function createRouter({
     }
     const ws = workspaces.list().find((w) => w.name === name);
     if (!ws) return sendJson(res, 404, { error: 'workspace_not_found' });
+    // fresh=true で claude を引数なし起動 (workspace の command を override)
+    const command = body?.fresh === true ? 'claude' : ws.command;
     try {
       const windowId = await tmux.newWindow(ws.path, { name: ws.name });
       await syncWindows();
-      await tmux.sendText(windowId, ws.command);
+      await tmux.sendText(windowId, command);
       await tmux.sendKey(windowId, 'Enter');
       return sendJson(res, 200, { ok: true, windowId, name: ws.name });
     } catch (err) {

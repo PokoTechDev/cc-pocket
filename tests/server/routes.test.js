@@ -477,6 +477,41 @@ describe('routes — POST /workspaces/open', () => {
     });
   });
 
+  test('fresh=true overrides command to "claude" (skips workspace default)', async () => {
+    const stored = hashPin('1234');
+    const sync = { count: 0 };
+    await withServer(() => setupDeps(stored, [
+      { name: 'foo', path: '/abs/foo', command: 'claude --resume' },
+    ], sync), async (base, deps) => {
+      const token = await authenticate(base, '1234');
+      const res = await fetch(`${base}/workspaces/open`, {
+        method: 'POST',
+        headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+        body: JSON.stringify({ name: 'foo', fresh: true }),
+      });
+      assert.equal(res.status, 200);
+      const sendText = deps.tmux._calls.find((c) => c.kind === 'sendText');
+      assert.equal(sendText.text, 'claude');
+    });
+  });
+
+  test('fresh=false keeps workspace command', async () => {
+    const stored = hashPin('1234');
+    await withServer(() => setupDeps(stored, [
+      { name: 'foo', path: '/abs/foo', command: 'claude --resume' },
+    ], { count: 0 }), async (base, deps) => {
+      const token = await authenticate(base, '1234');
+      const res = await fetch(`${base}/workspaces/open`, {
+        method: 'POST',
+        headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+        body: JSON.stringify({ name: 'foo', fresh: false }),
+      });
+      assert.equal(res.status, 200);
+      const sendText = deps.tmux._calls.find((c) => c.kind === 'sendText');
+      assert.equal(sendText.text, 'claude --resume');
+    });
+  });
+
   test('returns 503 when tmux fails', async () => {
     const stored = hashPin('1234');
     const sync = { count: 0 };

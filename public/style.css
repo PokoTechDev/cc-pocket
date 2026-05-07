@@ -271,6 +271,29 @@ input, textarea, select {
   border-radius: 8px;
 }
 .modal-close:active { background: var(--surface-2); }
+.modal-mode {
+  display: flex;
+  padding: 8px 12px;
+  gap: 8px;
+  border-bottom: 1px solid var(--border);
+}
+.modal-mode-btn {
+  flex: 1;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--fg);
+  padding: 8px 12px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  min-height: 36px;
+}
+.modal-mode-btn.active {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
 .modal-status {
   padding: 12px 16px;
   color: var(--muted);
