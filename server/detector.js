@@ -4,9 +4,33 @@
 const PROMPT_CONTEXT_MAX = 500;
 // CSI (\x1b[...x) と OSC (\x1b]...BEL) を除去
 const ANSI_RE = /\x1b\[[0-9;?]*[ -/]*[@-~]|\x1b\][^\x07]*\x07/g;
+// 行を " ❯ N. label" or "   N. label" にマッチさせる (^❯ なくてもよい)
+const OPTION_LINE_RE = /^\s*(❯\s+)?(\d+)\.\s+(.+?)\s*$/;
 
 export function stripAnsi(text) {
   return text.replace(ANSI_RE, '');
+}
+
+/**
+ * 末尾から逆順に走査して連続する numbered option 行を集め、
+ * 昇順にソートして返す。空行や非マッチに当たったら停止 (前段の文章を取り込まない)。
+ */
+export function extractOptions(text) {
+  const lines = text.split('\n');
+  const found = [];
+  for (let i = lines.length - 1; i >= 0; i--) {
+    const m = lines[i].match(OPTION_LINE_RE);
+    if (m) {
+      found.push({
+        keystroke: m[2],
+        label: m[3].trim(),
+        isDefault: !!m[1],
+      });
+      continue;
+    }
+    if (found.length > 0) break;
+  }
+  return found.sort((a, b) => Number.parseInt(a.keystroke, 10) - Number.parseInt(b.keystroke, 10));
 }
 
 export function createDetector({ patterns, now = () => Date.now() } = { patterns: [] }) {
@@ -24,11 +48,15 @@ export function createDetector({ patterns, now = () => Date.now() } = { patterns
       const stripped = stripAnsi(window);
       if (!regex.test(stripped)) continue;
       const promptStart = Math.max(0, stripped.length - PROMPT_CONTEXT_MAX);
+      const dynamic = extractOptions(stripped);
+      const options = dynamic.length === (raw.options?.length ?? 0)
+        ? dynamic
+        : (raw.options ?? []).map((o) => ({ ...o }));
       return {
         patternId: raw.id,
         detectedAt: now(),
         prompt: stripped.slice(promptStart),
-        options: raw.options.map((o) => ({ ...o })),
+        options,
       };
     }
     return null;

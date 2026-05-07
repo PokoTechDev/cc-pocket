@@ -2,14 +2,14 @@
   "version": 1,
   "patterns": [
     {
-      "id": "claude_code_numbered_v3",
-      "description": "Claude Code v2.1+ tool approval — option 1 starts with 'Yes' and option 3 starts with 'No' to distinguish from non-approval pickers (e.g., resume picker). Covers Bash/Edit/Write/Fetch.",
-      "regex": "❯\\s+1\\.\\s+Yes\\b[\\s\\S]{1,500}?^\\s+2\\.[\\s\\S]{1,500}?^\\s+3\\.\\s+No\\b",
+      "id": "claude_code_numbered_v4",
+      "description": "Claude Code v2.1+ generic 3-option picker (approval / resume / その他)。option ラベルは検知時に画面から動的抽出するので、ここの options[] はフォールバック用デフォルト。",
+      "regex": "❯\\s+1\\.[\\s\\S]{1,500}?^\\s+2\\.[\\s\\S]{1,500}?^\\s+3\\.",
       "flags": "m",
       "options": [
-        { "label": "許可", "keystroke": "1", "isDefault": true },
-        { "label": "常に許可", "keystroke": "2", "isDefault": false },
-        { "label": "拒否", "keystroke": "3", "isDefault": false }
+        { "label": "1", "keystroke": "1", "isDefault": true },
+        { "label": "2", "keystroke": "2", "isDefault": false },
+        { "label": "3", "keystroke": "3", "isDefault": false }
       ],
       "windowSize": 4096
     }
