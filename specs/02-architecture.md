@@ -38,6 +38,7 @@
 | Backfill | サーバ起動時に各windowで`tmux capture-pane -p -S -2000`を発行し、スクリーンバッファ末尾を取得してring buffer初期化に利用（既存windowの「サーバ起動前」を補完） |
 | Auth | PIN照合、セッショントークン発行 |
 | Push Sender | 承認待ち遷移時にWeb Pushを送る（VAPID） |
+| Workspaces Loader | `data/workspaces.json` を読み込み、ランチャー定義を提供（spec/03 §3.5） |
 
 ### 2.2.2 PWAクライアント
 

@@ -125,6 +125,19 @@ CC Pocketは「PCのClaude Codeセッションを、スマホネイティブUI�
 
 詳細は [`specs/05-approval-detection.md`](./specs/05-approval-detection.md) §5.2。
 
+### Phase 1.5: Workspaces ランチャー (L1 / 1日)
+
+「散歩から戻って続きの操作をする」UX を高速化するための前段。
+
+- [ ] `data/workspaces.json` に project 一覧を手動定義（gitignore 対象）
+- [ ] `server/workspaces.js` — workspaces.json loader + path 展開
+- [ ] `server/tmux.js` — `newWindow(cwd)` 追加で window_id を返却
+- [ ] `server/routes.js` — `GET /workspaces` と `POST /workspaces/open`
+- [ ] `public/workspaces.js` — drawer の `+` ボタン → モーダル → タップで起動
+- [ ] iPhone E2E: 1 タップで新 window 出現
+
+詳細は [`specs/03-contracts.md`](./specs/03-contracts.md) §3.5、[`specs/06-ui.md`](./specs/06-ui.md) §6.3.2。
+
 ### Phase 3: v1昇格 — 承認バナー + Push通知 (3-5日)
 
 - [ ] `server/detector.js` — `data/patterns.json` ベースのregexスキャン

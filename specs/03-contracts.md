@@ -173,7 +173,52 @@ data: {"timestamp":1735689630000}
 
 `id`はSSEの`Last-Event-ID`機構で再接続時のレジューム用。サーバ側は単調増加`seq`をそのまま使う。
 
-## 3.4 patterns.json（承認検知パターン定義）
+## 3.5 Workspaces API
+
+`data/workspaces.json` に手動定義したプロジェクトランチャー。タップ 1 回で `tmux new-window -c <path>` + 起動コマンドを発行。
+
+### 3.5.1 GET /workspaces
+
+**Response 200**:
+```json
+{
+  "workspaces": [
+    { "name": "cc-pocket", "path": "/Users/.../cc-pocket", "command": "claude --resume" }
+  ]
+}
+```
+
+**Response 503**: `{ "error": "workspaces_not_configured" }` — `data/workspaces.json` 不在 or 不正 JSON。
+
+### 3.5.2 POST /workspaces/open
+
+**Request**: `{ "name": "cc-pocket" }`
+
+**Response 200**: `{ "ok": true, "windowId": "@5", "name": "cc-pocket" }`
+
+**Response 400**: `{ "error": "bad_request" }`
+**Response 404**: `{ "error": "workspace_not_found" }`
+**Response 503**: `{ "error": "tmux_unavailable", "message": "..." }`
+
+副作用: `tmux new-window -t cc-pocket -c <expanded path> -P -F '#{window_id}'` で window 作成 → 100ms 待ち → `send-keys -l '<command>'` → `send-keys Enter`。同名 workspace の複数タップは複数 window を生む（モデル B = ランチャー型）。
+
+### 3.5.3 workspaces.json スキーマ
+
+```typescript
+interface WorkspaceFile {
+  workspaces: Workspace[]
+}
+
+interface Workspace {
+  name: string             // ユニーク。UI での表示名
+  path: string             // 絶対パス or `~` 展開可
+  command?: string         // 既定: "claude --resume"
+}
+```
+
+`name` 重複は不可（ロード時に拒否）。`path` は server プロセスの `os.homedir()` で `~` 展開する。
+
+## 3.6 patterns.json（承認検知パターン定義）
 
 ```typescript
 interface PatternFile {
