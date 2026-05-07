@@ -29,13 +29,28 @@ export function createRecentSessionsController({ api, onOpened, onUnauthorized }
     $('#recent-list').innerHTML = '';
   }
 
+  function renderSkeleton(count = 5) {
+    const list = $('#recent-list');
+    list.innerHTML = '';
+    for (let i = 0; i < count; i++) {
+      const li = document.createElement('li');
+      li.className = 'recent-item';
+      li.innerHTML = `
+        <div class="skeleton-row short"></div>
+        <div class="skeleton-row long"></div>
+      `;
+      list.appendChild(li);
+    }
+  }
+
   async function refresh() {
-    setStatus('読み込み中…');
-    clearList();
+    setStatus('');
+    renderSkeleton();
     let res;
     try { res = await api.request('GET', '/sessions/recent?limit=10'); }
-    catch { setStatus('読み込み失敗'); return; }
+    catch { clearList(); setStatus('読み込み失敗'); return; }
     if (res.status === 401) { onUnauthorized(); return; }
+    clearList();
     if (res.status === 503) { setStatus('claude 履歴なし'); loaded = true; return; }
     if (res.status !== 200) { setStatus(`読み込み失敗 (${res.status})`); return; }
     setStatus('');

@@ -1,6 +1,8 @@
 // Drawer (left sidebar) UI — spec/06 §6.3.2
 
 const $ = (sel) => document.querySelector(sel);
+const SWIPE_CLOSE_THRESHOLD_PX = 60;
+const SWIPE_DIRECTION_RATIO = 1.5;
 
 export function createDrawerController({ getWindows, getCurrentId, onSelect, onOpen }) {
   function open() {
@@ -12,6 +14,26 @@ export function createDrawerController({ getWindows, getCurrentId, onSelect, onO
   function close() {
     $('#drawer').hidden = true;
     $('#drawer-scrim').hidden = true;
+  }
+
+  let touchStart = null;
+  function attachSwipeClose() {
+    const drawer = $('#drawer');
+    drawer.addEventListener('touchstart', (e) => {
+      const t = e.touches[0];
+      touchStart = { x: t.clientX, y: t.clientY };
+    }, { passive: true });
+    drawer.addEventListener('touchend', (e) => {
+      if (!touchStart) return;
+      const t = e.changedTouches[0];
+      const dx = t.clientX - touchStart.x;
+      const dy = Math.abs(t.clientY - touchStart.y);
+      // 左方向への明確なスワイプのみ反応 (縦スクロール優先)
+      if (dx < -SWIPE_CLOSE_THRESHOLD_PX && Math.abs(dx) > dy * SWIPE_DIRECTION_RATIO) {
+        close();
+      }
+      touchStart = null;
+    }, { passive: true });
   }
 
   function makeItem(w) {
@@ -54,6 +76,7 @@ export function createDrawerController({ getWindows, getCurrentId, onSelect, onO
   function attach() {
     $('#drawer-toggle').addEventListener('click', open);
     $('#drawer-scrim').addEventListener('click', close);
+    attachSwipeClose();
   }
 
   return { attach, open, close, renderAll, renderItem };
