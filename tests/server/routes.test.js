@@ -60,6 +60,7 @@ function defaultDeps(stored = null) {
     sse: createSseBroadcaster(),
     workspaces: { list: () => [] },
     sessions: { list: async () => null },
+    prompts: { list: () => [] },
     homeDir: '/Users/test',
     syncWindows: async () => {},
     serverVersion: '0.0.0-test',
@@ -643,6 +644,50 @@ describe('routes — GET /events SSE', () => {
       assert.match(text, /event: snapshot/);
       assert.match(text, /"windows"/);
       reader.cancel();
+    });
+  });
+});
+
+describe('routes — GET /prompts', () => {
+  test('returns prompts from list provider', async () => {
+    const stored = hashPin('1234');
+    await withServer(() => {
+      const deps = defaultDeps(stored);
+      deps.prompts = { list: () => [
+        { name: '/plan', text: '/plan ' },
+        { name: 'review', text: 'review last commit' },
+      ] };
+      return deps;
+    }, async (base) => {
+      const token = await authenticate(base, '1234');
+      const res = await fetch(`${base}/prompts`, {
+        headers: { authorization: `Bearer ${token}` },
+      });
+      assert.equal(res.status, 200);
+      const body = await res.json();
+      assert.equal(body.prompts.length, 2);
+      assert.equal(body.prompts[0].name, '/plan');
+    });
+  });
+
+  test('returns empty list when not configured', async () => {
+    const stored = hashPin('1234');
+    await withServer(() => defaultDeps(stored), async (base) => {
+      const token = await authenticate(base, '1234');
+      const res = await fetch(`${base}/prompts`, {
+        headers: { authorization: `Bearer ${token}` },
+      });
+      assert.equal(res.status, 200);
+      const body = await res.json();
+      assert.deepEqual(body.prompts, []);
+    });
+  });
+
+  test('requires authentication', async () => {
+    const stored = hashPin('1234');
+    await withServer(() => defaultDeps(stored), async (base) => {
+      const res = await fetch(`${base}/prompts`);
+      assert.equal(res.status, 401);
     });
   });
 });

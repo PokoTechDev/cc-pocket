@@ -49,6 +49,7 @@ export function createRouter({
   sse,
   workspaces = { list: () => [] },
   sessions = { list: async () => null },
+  prompts = { list: () => [] },
   homeDir = '/',
   syncWindows = async () => {},
   serverVersion = '0.0.0',
@@ -185,6 +186,10 @@ export function createRouter({
     }
   }
 
+  function handlePromptsList(res) {
+    return sendJson(res, 200, { prompts: prompts.list() });
+  }
+
   function handleWorkspacesList(res) {
     const list = workspaces.list();
     if (!Array.isArray(list) || list.length === 0) {
@@ -257,6 +262,7 @@ export function createRouter({
 
     if (method === 'GET' && path === '/session') return handleSession(res);
     if (method === 'GET' && path === '/events') return handleEvents(req, res);
+    if (method === 'GET' && path === '/prompts') return handlePromptsList(res);
     if (method === 'GET' && path === '/workspaces') return handleWorkspacesList(res);
     if (method === 'POST' && path === '/workspaces/open') return handleWorkspacesOpen(req, res);
     if (method === 'GET' && path === '/sessions/recent') return handleSessionsRecent(res, url);

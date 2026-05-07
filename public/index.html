@@ -74,6 +74,14 @@
       </header>
 
       <div class="drawer" id="drawer" hidden>
+        <div class="drawer-section" id="drawer-ideas">
+          <div class="drawer-section-header">
+            <span>アイデア箱</span>
+            <button id="idea-add-btn" class="drawer-section-btn" aria-label="アイデア追加">＋</button>
+          </div>
+          <div class="drawer-section-status" id="ideas-empty" hidden>まだ何もなし</div>
+          <ul class="ideas-list" id="ideas-list"></ul>
+        </div>
         <div class="drawer-section" id="drawer-recent">
           <div class="drawer-section-header">最近のセッション</div>
           <div class="drawer-section-status" id="recent-status"></div>
@@ -86,6 +94,16 @@
         <ul class="drawer-list" id="drawer-list"></ul>
       </div>
       <div class="drawer-scrim" id="drawer-scrim" hidden></div>
+
+      <div class="modal-scrim" id="idea-modal-scrim" hidden></div>
+      <div class="modal" id="idea-modal" hidden role="dialog" aria-labelledby="idea-modal-title">
+        <div class="modal-header">
+          <span id="idea-modal-title">アイデアを追加</span>
+          <button id="idea-modal-close" class="modal-close" aria-label="閉じる">✕</button>
+        </div>
+        <textarea id="idea-modal-text" class="modal-textarea" rows="4" placeholder="思いついた指示を書く（保存しても自動で送信はしない）"></textarea>
+        <button id="idea-modal-save" class="btn-primary modal-save">保存</button>
+      </div>
 
       <div class="modal-scrim" id="ws-modal-scrim" hidden></div>
       <div class="modal" id="ws-modal" hidden role="dialog" aria-labelledby="ws-modal-title">
@@ -110,9 +128,20 @@
       </section>
 
       <footer class="input-bar">
+        <button class="input-side-btn" id="pp-open-btn" aria-label="プロンプトプリセット">⚡</button>
         <textarea class="input-field" id="input-field" rows="1" placeholder="メッセージ"></textarea>
         <button class="btn-primary" id="send-btn">送信</button>
       </footer>
+
+      <div class="modal-scrim" id="pp-modal-scrim" hidden></div>
+      <div class="modal" id="pp-modal" hidden role="dialog" aria-labelledby="pp-modal-title">
+        <div class="modal-header">
+          <span id="pp-modal-title">プロンプトプリセット</span>
+          <button id="pp-modal-close" class="modal-close" aria-label="閉じる">✕</button>
+        </div>
+        <div class="modal-status" id="pp-modal-status"></div>
+        <ul class="modal-list" id="pp-modal-list"></ul>
+      </div>
 
       <div class="quick-keys" id="quick-keys">
         <button class="qk" data-qk="Enter">↵</button>

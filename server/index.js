@@ -15,6 +15,7 @@ import { createStaticHandler } from './static.js';
 import { createDetector } from './detector.js';
 import { loadWorkspaces } from './workspaces.js';
 import { listRecentSessions } from './sessions.js';
+import { loadPrompts } from './prompts.js';
 
 export const PORT = 7700;
 export const SERVER_VERSION = '0.0.0';
@@ -23,6 +24,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const DEFAULT_PIN_FILE = join(__dirname, '..', 'data', 'pin.json');
 const DEFAULT_PATTERNS_FILE = join(__dirname, '..', 'data', 'patterns.json');
 const DEFAULT_WORKSPACES_FILE = join(__dirname, '..', 'data', 'workspaces.json');
+const DEFAULT_PROMPTS_FILE = join(__dirname, '..', 'data', 'prompts.json');
 const DEFAULT_CLAUDE_PROJECTS_DIR = join(homedir(), '.claude', 'projects');
 const DEFAULT_PIPE_DIR = join(homedir(), '.cc-pocket', 'pipe');
 const DEFAULT_PUBLIC_DIR = join(__dirname, '..', 'public');
@@ -66,6 +68,7 @@ export function buildApp({
   pinFile = DEFAULT_PIN_FILE,
   patternsFile = DEFAULT_PATTERNS_FILE,
   workspacesFile = DEFAULT_WORKSPACES_FILE,
+  promptsFile = DEFAULT_PROMPTS_FILE,
   claudeProjectsDir = DEFAULT_CLAUDE_PROJECTS_DIR,
   pipeDir = DEFAULT_PIPE_DIR,
   publicDir = DEFAULT_PUBLIC_DIR,
@@ -85,6 +88,7 @@ export function buildApp({
   const workspaces = {
     list: () => loadWorkspaces({ filepath: workspacesFile, homeDir: homedir() }),
   };
+  const prompts = { list: () => loadPrompts({ filepath: promptsFile }) };
   // sessions: ~/.claude/projects/ 不在時は null を返して 503 にする
   const sessions = {
     list: async (limit) => {
@@ -94,7 +98,7 @@ export function buildApp({
   };
 
   const { handler } = createRouter({
-    pinStore, auth, state, tmux, sse, workspaces, sessions,
+    pinStore, auth, state, tmux, sse, workspaces, sessions, prompts,
     homeDir: homedir(),
     syncWindows: () => syncWindows(),
     serverVersion, startedAt,

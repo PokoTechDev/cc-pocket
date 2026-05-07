@@ -3,11 +3,13 @@
 
 import { createApi } from '/api.js';
 import { createPinController } from '/pin.js';
-import { parseAnsi } from '/ansi.js';
+import { renderScreen as renderScreenWithBlocks } from '/screen-render.js';
 import { createApprovalController } from '/approval.js';
 import { createDrawerController } from '/drawer.js';
 import { createWorkspacesController } from '/workspaces.js';
 import { createRecentSessionsController } from '/recent-sessions.js';
+import { createIdeasController } from '/ideas.js';
+import { createPromptsController } from '/prompts.js';
 
 const MAX_INPUT_BYTES = 8192;
 const RECONNECT_DELAYS_MS = [1000, 3000, 7000, 15000, 30000, 60000];
@@ -70,17 +72,7 @@ async function loadInitialScreen() {
 }
 
 function renderScreen(text) {
-  const log = $('#log-area');
-  log.innerHTML = '';
-  for (const seg of parseAnsi(text)) {
-    if (!seg.text) continue;
-    const node = document.createElement('span');
-    node.className = 'log-line';
-    if (seg.style) node.style.cssText = seg.style;
-    node.textContent = seg.text;
-    log.appendChild(node);
-  }
-  log.scrollTop = log.scrollHeight;
+  renderScreenWithBlocks($('#log-area'), text);
 }
 
 function connectSse() {
@@ -254,10 +246,15 @@ async function switchToOpenedWindow(windowId) {
 const onUnauth = () => { api.clearToken(); showScreen('pin'); };
 const workspacesCtrl = createWorkspacesController({ api, onUnauthorized: onUnauth, onOpened: switchToOpenedWindow });
 const recentCtrl = createRecentSessionsController({ api, onUnauthorized: onUnauth, onOpened: switchToOpenedWindow });
+const fillInput = (text) => { const f = $('#input-field'); f.value = text; autoSizeInput(); drawer.close(); f.focus(); };
+const ideasCtrl = createIdeasController({ onSendToInput: fillInput });
+const promptsCtrl = createPromptsController({ api, onUnauthorized: onUnauth, onPick: fillInput });
 
 function attachMainListeners() {
   drawer.attach();
   workspacesCtrl.attach();
+  ideasCtrl.attach();
+  promptsCtrl.attach();
   $('#logout-btn').addEventListener('click', logout);
   $('#send-btn').addEventListener('click', sendInputText);
   $('#input-field').addEventListener('input', autoSizeInput);
