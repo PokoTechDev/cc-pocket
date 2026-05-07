@@ -46,6 +46,8 @@ export function createRouter({
   state,
   tmux,
   sse,
+  workspaces = { list: () => [] },
+  syncWindows = async () => {},
   serverVersion = '0.0.0',
   startedAt = Date.now(),
 }) {
@@ -180,6 +182,35 @@ export function createRouter({
     }
   }
 
+  function handleWorkspacesList(res) {
+    const list = workspaces.list();
+    if (!Array.isArray(list) || list.length === 0) {
+      return sendJson(res, 503, { error: 'workspaces_not_configured' });
+    }
+    return sendJson(res, 200, { workspaces: list });
+  }
+
+  async function handleWorkspacesOpen(req, res) {
+    let body;
+    try { body = await readJsonBody(req); }
+    catch { return sendJson(res, 400, { error: 'bad_request' }); }
+    const name = body?.name;
+    if (typeof name !== 'string' || name.length === 0) {
+      return sendJson(res, 400, { error: 'bad_request' });
+    }
+    const ws = workspaces.list().find((w) => w.name === name);
+    if (!ws) return sendJson(res, 404, { error: 'workspace_not_found' });
+    try {
+      const windowId = await tmux.newWindow(ws.path, { name: ws.name });
+      await syncWindows();
+      await tmux.sendText(windowId, ws.command);
+      await tmux.sendKey(windowId, 'Enter');
+      return sendJson(res, 200, { ok: true, windowId, name: ws.name });
+    } catch (err) {
+      return sendJson(res, 503, { error: 'tmux_unavailable', message: err.message });
+    }
+  }
+
   function handleEvents(req, res) {
     const lastEventId = req.headers['last-event-id'] ?? null;
     const client = sse.attach(res, { lastEventId });
@@ -217,6 +248,8 @@ export function createRouter({
 
     if (method === 'GET' && path === '/session') return handleSession(res);
     if (method === 'GET' && path === '/events') return handleEvents(req, res);
+    if (method === 'GET' && path === '/workspaces') return handleWorkspacesList(res);
+    if (method === 'POST' && path === '/workspaces/open') return handleWorkspacesOpen(req, res);
 
     const m = path.match(WINDOW_PATH_RE);
     if (m) {

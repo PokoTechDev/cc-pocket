@@ -13,6 +13,7 @@ import { createSseBroadcaster } from './sse.js';
 import { createRouter } from './routes.js';
 import { createStaticHandler } from './static.js';
 import { createDetector } from './detector.js';
+import { loadWorkspaces } from './workspaces.js';
 
 export const PORT = 7700;
 export const SERVER_VERSION = '0.0.0';
@@ -20,6 +21,7 @@ export const SERVER_VERSION = '0.0.0';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const DEFAULT_PIN_FILE = join(__dirname, '..', 'data', 'pin.json');
 const DEFAULT_PATTERNS_FILE = join(__dirname, '..', 'data', 'patterns.json');
+const DEFAULT_WORKSPACES_FILE = join(__dirname, '..', 'data', 'workspaces.json');
 const DEFAULT_PIPE_DIR = join(homedir(), '.cc-pocket', 'pipe');
 const DEFAULT_PUBLIC_DIR = join(__dirname, '..', 'public');
 const TICK_INTERVAL_MS = 1000;
@@ -61,6 +63,7 @@ function loadPatterns(filepath) {
 export function buildApp({
   pinFile = DEFAULT_PIN_FILE,
   patternsFile = DEFAULT_PATTERNS_FILE,
+  workspacesFile = DEFAULT_WORKSPACES_FILE,
   pipeDir = DEFAULT_PIPE_DIR,
   publicDir = DEFAULT_PUBLIC_DIR,
   serverVersion = SERVER_VERSION,
@@ -75,9 +78,15 @@ export function buildApp({
   const pinStore = createPinStore(pinFile);
   const detector = createDetector({ patterns: loadPatterns(patternsFile) });
   const tailers = new Map();
+  // workspaces.json は毎呼び出しで読み直す (起動中の編集を即時反映)
+  const workspaces = {
+    list: () => loadWorkspaces({ filepath: workspacesFile, homeDir: homedir() }),
+  };
 
   const { handler } = createRouter({
-    pinStore, auth, state, tmux, sse, serverVersion, startedAt,
+    pinStore, auth, state, tmux, sse, workspaces,
+    syncWindows: () => syncWindows(),
+    serverVersion, startedAt,
   });
   const serveStatic = createStaticHandler(publicDir);
 

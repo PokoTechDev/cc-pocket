@@ -8,6 +8,7 @@ import { createSseBroadcaster } from '../../server/sse.js';
 
 function makeMockTmux() {
   const calls = [];
+  let nextWindowId = 100;
   return {
     session: 'cc-pocket',
     sessionExists: async () => true,
@@ -16,6 +17,11 @@ function makeMockTmux() {
     sendText: async (id, text) => { calls.push({ kind: 'sendText', id, text }); },
     sendKey: async (id, key) => { calls.push({ kind: 'sendKey', id, key }); },
     capturePane: async () => '',
+    newWindow: async (cwd, opts = {}) => {
+      const id = `@${nextWindowId++}`;
+      calls.push({ kind: 'newWindow', cwd, opts, id });
+      return id;
+    },
     _calls: calls,
   };
 }
@@ -52,6 +58,8 @@ function defaultDeps(stored = null) {
     state: createStateStore(),
     tmux: makeMockTmux(),
     sse: createSseBroadcaster(),
+    workspaces: { list: () => [] },
+    syncWindows: async () => {},
     serverVersion: '0.0.0-test',
     startedAt: 1_700_000_000_000,
   };
@@ -350,6 +358,142 @@ describe('routes — POST /windows/:id/keys', () => {
         body: JSON.stringify({ keys: 'rm -rf /' }),
       });
       assert.equal(res.status, 400);
+    });
+  });
+});
+
+describe('routes — GET /workspaces', () => {
+  test('returns workspaces from list provider', async () => {
+    const stored = hashPin('1234');
+    await withServer(() => {
+      const deps = defaultDeps(stored);
+      deps.workspaces = { list: () => [
+        { name: 'foo', path: '/abs/foo', command: 'claude --resume' },
+        { name: 'bar', path: '/abs/bar', command: 'claude' },
+      ]};
+      return deps;
+    }, async (base) => {
+      const token = await authenticate(base, '1234');
+      const res = await fetch(`${base}/workspaces`, {
+        headers: { authorization: `Bearer ${token}` },
+      });
+      assert.equal(res.status, 200);
+      const body = await res.json();
+      assert.equal(body.workspaces.length, 2);
+      assert.equal(body.workspaces[0].name, 'foo');
+    });
+  });
+
+  test('returns 503 when workspaces list is empty (treat as not configured)', async () => {
+    const stored = hashPin('1234');
+    await withServer(() => defaultDeps(stored), async (base) => {
+      const token = await authenticate(base, '1234');
+      const res = await fetch(`${base}/workspaces`, {
+        headers: { authorization: `Bearer ${token}` },
+      });
+      assert.equal(res.status, 503);
+      const body = await res.json();
+      assert.equal(body.error, 'workspaces_not_configured');
+    });
+  });
+
+  test('requires authentication', async () => {
+    const stored = hashPin('1234');
+    await withServer(() => defaultDeps(stored), async (base) => {
+      const res = await fetch(`${base}/workspaces`);
+      assert.equal(res.status, 401);
+    });
+  });
+});
+
+describe('routes — POST /workspaces/open', () => {
+  function setupDeps(stored, workspaces, syncCounter) {
+    const deps = defaultDeps(stored);
+    deps.workspaces = { list: () => workspaces };
+    deps.syncWindows = async () => { syncCounter.count += 1; };
+    return deps;
+  }
+
+  test('creates new window with workspace cwd and runs command', async () => {
+    const stored = hashPin('1234');
+    const sync = { count: 0 };
+    await withServer(() => setupDeps(stored, [
+      { name: 'foo', path: '/abs/foo', command: 'claude --resume' },
+    ], sync), async (base, deps) => {
+      const token = await authenticate(base, '1234');
+      const res = await fetch(`${base}/workspaces/open`, {
+        method: 'POST',
+        headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+        body: JSON.stringify({ name: 'foo' }),
+      });
+      assert.equal(res.status, 200);
+      const body = await res.json();
+      assert.equal(body.ok, true);
+      assert.match(body.windowId, /^@\d+$/);
+      assert.equal(body.name, 'foo');
+
+      const newWin = deps.tmux._calls.find((c) => c.kind === 'newWindow');
+      assert.ok(newWin);
+      assert.equal(newWin.cwd, '/abs/foo');
+      assert.equal(newWin.opts.name, 'foo');
+
+      const sendText = deps.tmux._calls.find((c) => c.kind === 'sendText' && c.id === newWin.id);
+      assert.deepEqual(sendText, { kind: 'sendText', id: newWin.id, text: 'claude --resume' });
+
+      const sendKey = deps.tmux._calls.find((c) => c.kind === 'sendKey' && c.id === newWin.id);
+      assert.deepEqual(sendKey, { kind: 'sendKey', id: newWin.id, key: 'Enter' });
+
+      assert.equal(sync.count, 1, 'syncWindows should be called once');
+    });
+  });
+
+  test('returns 404 for unknown workspace name', async () => {
+    const stored = hashPin('1234');
+    await withServer(() => setupDeps(stored, [
+      { name: 'known', path: '/abs', command: 'claude' },
+    ], { count: 0 }), async (base) => {
+      const token = await authenticate(base, '1234');
+      const res = await fetch(`${base}/workspaces/open`, {
+        method: 'POST',
+        headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+        body: JSON.stringify({ name: 'unknown' }),
+      });
+      assert.equal(res.status, 404);
+      const body = await res.json();
+      assert.equal(body.error, 'workspace_not_found');
+    });
+  });
+
+  test('returns 400 on missing name', async () => {
+    const stored = hashPin('1234');
+    await withServer(() => setupDeps(stored, [], { count: 0 }), async (base) => {
+      const token = await authenticate(base, '1234');
+      const res = await fetch(`${base}/workspaces/open`, {
+        method: 'POST',
+        headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+        body: JSON.stringify({}),
+      });
+      assert.equal(res.status, 400);
+    });
+  });
+
+  test('returns 503 when tmux fails', async () => {
+    const stored = hashPin('1234');
+    const sync = { count: 0 };
+    await withServer(() => {
+      const deps = setupDeps(stored, [{ name: 'foo', path: '/abs/foo', command: 'claude' }], sync);
+      deps.tmux.newWindow = async () => { throw new Error('tmux dead'); };
+      return deps;
+    }, async (base) => {
+      const token = await authenticate(base, '1234');
+      const res = await fetch(`${base}/workspaces/open`, {
+        method: 'POST',
+        headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+        body: JSON.stringify({ name: 'foo' }),
+      });
+      assert.equal(res.status, 503);
+      const body = await res.json();
+      assert.equal(body.error, 'tmux_unavailable');
     });
   });
 });
