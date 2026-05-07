@@ -129,14 +129,25 @@ CC Pocketは「PCのClaude Codeセッションを、スマホネイティブUI�
 
 「散歩から戻って続きの操作をする」UX を高速化するための前段。
 
-- [ ] `data/workspaces.json` に project 一覧を手動定義（gitignore 対象）
-- [ ] `server/workspaces.js` — workspaces.json loader + path 展開
-- [ ] `server/tmux.js` — `newWindow(cwd)` 追加で window_id を返却
-- [ ] `server/routes.js` — `GET /workspaces` と `POST /workspaces/open`
-- [ ] `public/workspaces.js` — drawer の `+` ボタン → モーダル → タップで起動
-- [ ] iPhone E2E: 1 タップで新 window 出現
+- [x] `data/workspaces.json` に project 一覧を手動定義（gitignore 対象）
+- [x] `server/workspaces.js` — workspaces.json loader + path 展開
+- [x] `server/tmux.js` — `newWindow(cwd)` 追加で window_id を返却
+- [x] `server/routes.js` — `GET /workspaces` と `POST /workspaces/open`
+- [x] `public/workspaces.js` — drawer の `+` ボタン → モーダル → タップで起動
+- [x] iPhone E2E: 1 タップで新 window 出現
 
 詳細は [`specs/03-contracts.md`](./specs/03-contracts.md) §3.5、[`specs/06-ui.md`](./specs/06-ui.md) §6.3.2。
+
+### Phase 1.6: Recent Sessions (L3 / 1日)
+
+claude history (`~/.claude/projects/`) から直近セッションを drawer 上部に表示し、1 タップで resume できるようにする。
+
+- [ ] `server/sessions.js` — encoded-path decoder + jsonl head parser + `listRecentSessions`
+- [ ] `server/routes.js` — `GET /sessions/recent` と `POST /sessions/open`
+- [ ] `public/recent-sessions.js` — drawer 上部の "最近のセッション" セクション
+- [ ] iPhone E2E: 直近 10 件タップで該当 claude セッション resume
+
+詳細は [`specs/03-contracts.md`](./specs/03-contracts.md) §3.6、[`specs/06-ui.md`](./specs/06-ui.md) §6.3.2。
 
 ### Phase 3: v1昇格 — 承認バナー + Push通知 (3-5日)
 

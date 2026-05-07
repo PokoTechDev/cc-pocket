@@ -39,6 +39,7 @@
 | Auth | PIN照合、セッショントークン発行 |
 | Push Sender | 承認待ち遷移時にWeb Pushを送る（VAPID） |
 | Workspaces Loader | `data/workspaces.json` を読み込み、ランチャー定義を提供（spec/03 §3.5） |
+| Sessions Discovery | `~/.claude/projects/<encoded>/*.jsonl` を scan して claude セッション一覧を提供（spec/03 §3.6） |
 
 ### 2.2.2 PWAクライアント
 

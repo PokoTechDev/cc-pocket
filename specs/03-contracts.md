@@ -218,7 +218,46 @@ interface Workspace {
 
 `name` 重複は不可（ロード時に拒否）。`path` は server プロセスの `os.homedir()` で `~` 展開する。
 
-## 3.6 patterns.json（承認検知パターン定義）
+## 3.6 Recent Sessions API
+
+`~/.claude/projects/<encoded-path>/<sessionId>.jsonl` を scan して直近のセッション一覧を返す。
+
+### 3.6.1 GET /sessions/recent
+
+**Query**: `?limit=10`（既定 10、min 1, max 50, clamp）
+
+**Response 200**:
+```json
+{
+  "sessions": [
+    {
+      "sessionId": "03f2fd54-4da5-4ebe-a8e1-bfdb88dd2404",
+      "projectPath": "/Users/.../cc-pocket",
+      "projectName": "cc-pocket",
+      "mtime": 1735689600000,
+      "firstUserMessage": "こんにちは…"
+    }
+  ]
+}
+```
+
+**Response 503**: `{ "error": "claude_history_not_found" }` — `~/.claude/projects/` 不在。
+
+`firstUserMessage` は null の場合あり（パース失敗 / user メッセージなし）。最大 80 文字 truncate。
+
+### 3.6.2 POST /sessions/open
+
+**Request**: `{ "projectPath": "/Users/.../cc-pocket", "sessionId": "<uuid>" }`
+
+**Response 200**: `{ "ok": true, "windowId": "@6" }`
+**Response 400**: `{ "error": "bad_request", "reason": "invalid_path" | "invalid_session_id" }`
+**Response 503**: `{ "error": "tmux_unavailable" }`
+
+セキュリティ: `projectPath` は絶対パス必須、`..` を含むパスは拒否、`os.homedir()` 配下のみ許可。`sessionId` は `^[a-f0-9-]{36}$`（UUID 形式）必須。
+
+副作用: `tmux new-window -c <projectPath>` → 100ms 待ち → `send-keys -l 'claude --resume <sessionId>'` → `send-keys Enter`。
+
+## 3.7 patterns.json（承認検知パターン定義）
 
 ```typescript
 interface PatternFile {
