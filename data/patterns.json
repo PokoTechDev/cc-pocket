@@ -2,9 +2,9 @@
   "version": 1,
   "patterns": [
     {
-      "id": "claude_code_numbered_v2",
-      "description": "Claude Code v2.1+ tool approval — anchor on the 3-numbered-option block with ❯ marker on option 1. Covers Bash/Edit/Write/Fetch (footer text varies, but option layout is consistent)",
-      "regex": "❯\\s+1\\.[\\s\\S]{1,500}?^\\s+2\\.[\\s\\S]{1,500}?^\\s+3\\.",
+      "id": "claude_code_numbered_v3",
+      "description": "Claude Code v2.1+ tool approval — option 1 starts with 'Yes' and option 3 starts with 'No' to distinguish from non-approval pickers (e.g., resume picker). Covers Bash/Edit/Write/Fetch.",
+      "regex": "❯\\s+1\\.\\s+Yes\\b[\\s\\S]{1,500}?^\\s+2\\.[\\s\\S]{1,500}?^\\s+3\\.\\s+No\\b",
       "flags": "m",
       "options": [
         { "label": "許可", "keystroke": "1", "isDefault": true },

@@ -8,11 +8,12 @@ import { createDetector, stripAnsi } from '../../server/detector.js';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const FIXTURE_EDIT = readFileSync(join(__dirname, '..', 'fixtures', 'approval_edit.txt'), 'utf8');
 const FIXTURE_FETCH = readFileSync(join(__dirname, '..', 'fixtures', 'approval_fetch.txt'), 'utf8');
+const FIXTURE_RESUME_PICKER = readFileSync(join(__dirname, '..', 'fixtures', 'approval_resume_picker.txt'), 'utf8');
 
 const NUMBERED_PATTERN = {
-  id: 'claude_code_numbered_v2',
-  description: 'numbered 3-option approval (anchor on option block, footer varies)',
-  regex: '❯\\s+1\\.[\\s\\S]{1,500}?^\\s+2\\.[\\s\\S]{1,500}?^\\s+3\\.',
+  id: 'claude_code_numbered_v3',
+  description: 'numbered 3-option approval (anchor on Yes/No labels)',
+  regex: '❯\\s+1\\.\\s+Yes\\b[\\s\\S]{1,500}?^\\s+2\\.[\\s\\S]{1,500}?^\\s+3\\.\\s+No\\b',
   flags: 'm',
   options: [
     { label: '許可', keystroke: '1', isDefault: true },
@@ -54,7 +55,7 @@ describe('createDetector — fixture: Edit prompt', () => {
   test('detects approval in raw ANSI fixture', () => {
     const result = det.detect(FIXTURE_EDIT);
     assert.ok(result, 'expected detection');
-    assert.equal(result.patternId, 'claude_code_numbered_v2');
+    assert.equal(result.patternId, 'claude_code_numbered_v3');
     assert.equal(result.detectedAt, 1_700_000_000_000);
     assert.deepEqual(result.options, NUMBERED_PATTERN.options);
   });
@@ -74,7 +75,7 @@ describe('createDetector — fixture: Web Fetch prompt (different footer)', () =
   test('detects fetch approval despite missing "Esc · Tab" footer', () => {
     const result = det.detect(FIXTURE_FETCH);
     assert.ok(result, 'expected detection on fetch fixture');
-    assert.equal(result.patternId, 'claude_code_numbered_v2');
+    assert.equal(result.patternId, 'claude_code_numbered_v3');
   });
 
   test('prompt context includes fetch question', () => {
@@ -100,7 +101,7 @@ describe('createDetector — synthetic Bash prompt', () => {
   test('matches Bash variant with extra footer suffix', () => {
     const result = det.detect(synthetic);
     assert.ok(result);
-    assert.equal(result.patternId, 'claude_code_numbered_v2');
+    assert.equal(result.patternId, 'claude_code_numbered_v3');
   });
 });
 
@@ -117,6 +118,10 @@ describe('createDetector — non-matching content', () => {
 
   test('returns null on numbered list without ❯ marker', () => {
     assert.equal(det.detect(' 1. one\n 2. two\n 3. three'), null);
+  });
+
+  test('returns null on Resume picker (option 1 != Yes, option 3 != No)', () => {
+    assert.equal(det.detect(FIXTURE_RESUME_PICKER), null);
   });
 });
 
