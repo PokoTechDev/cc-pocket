@@ -19,6 +19,7 @@ Thumbs.db
 data/pin.json
 data/vapid.json
 data/samples/
+data/workspaces.json
 
 # Local dev artifacts
 *.log

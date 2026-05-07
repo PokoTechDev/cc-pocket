@@ -1,0 +1,13 @@
+{
+  "workspaces": [
+    {
+      "name": "CC Pocket",
+      "path": "~/Documents/Projects/Git/work-kojin/cc-pocket",
+      "command": "claude --resume"
+    },
+    {
+      "name": "Some Other Project",
+      "path": "~/Projects/some-other-project"
+    }
+  ]
+}
