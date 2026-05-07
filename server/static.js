@@ -10,6 +10,7 @@ const STATIC_FILES = {
   '/ansi.js': 'ansi.js',
   '/approval.js': 'approval.js',
   '/drawer.js': 'drawer.js',
+  '/workspaces.js': 'workspaces.js',
   '/style.css': 'style.css',
   '/manifest.webmanifest': 'manifest.webmanifest',
   '/icon.svg': 'icon.svg',

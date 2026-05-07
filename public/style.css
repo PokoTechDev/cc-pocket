@@ -180,10 +180,22 @@ input, textarea, select {
   height: var(--header-h);
   display: flex;
   align-items: center;
+  justify-content: space-between;
   padding: 0 16px;
   border-bottom: 1px solid var(--border);
   font-weight: 600;
 }
+.drawer-btn {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--fg);
+  font-size: 18px;
+  width: 36px;
+  height: 36px;
+  cursor: pointer;
+}
+.drawer-btn:active { background: var(--surface); }
 .drawer-list { list-style: none; padding: 0; margin: 0; overflow-y: auto; flex: 1; }
 .drawer-item {
   padding: 12px 16px;
@@ -216,6 +228,73 @@ input, textarea, select {
 .log-line.user { color: var(--green); }
 .log-line.system { color: var(--muted); font-style: italic; }
 .log-line.err { color: var(--red); }
+
+/* Modal (workspaces / future selectors) */
+.modal-scrim {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 29;
+}
+.modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(90vw, 380px);
+  max-height: 70vh;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+  z-index: 30;
+  overflow: hidden;
+}
+.modal-header {
+  height: var(--header-h);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--border);
+  font-weight: 600;
+}
+.modal-close {
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  font-size: 18px;
+  width: 36px;
+  height: 36px;
+  cursor: pointer;
+  border-radius: 8px;
+}
+.modal-close:active { background: var(--surface-2); }
+.modal-status {
+  padding: 12px 16px;
+  color: var(--muted);
+  font-size: 13px;
+  border-bottom: 1px solid var(--border);
+}
+.modal-status:empty { display: none; }
+.modal-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  flex: 1;
+}
+.ws-modal-item {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  min-height: 44px;
+}
+.ws-modal-item:active { background: var(--surface-2); }
+.ws-modal-item.selecting { opacity: 0.5; pointer-events: none; }
+.ws-modal-item .ws-name { font-weight: 600; font-size: 14px; }
+.ws-modal-item .ws-path { color: var(--muted); font-size: 12px; margin-top: 2px; }
 
 /* Approval banner */
 .approval-banner {

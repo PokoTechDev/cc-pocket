@@ -74,10 +74,23 @@
       </header>
 
       <div class="drawer" id="drawer" hidden>
-        <div class="drawer-header">ワークスペース</div>
+        <div class="drawer-header">
+          <span>ワークスペース</span>
+          <button id="ws-open-btn" class="drawer-btn" aria-label="ワークスペースを開く">＋</button>
+        </div>
         <ul class="drawer-list" id="drawer-list"></ul>
       </div>
       <div class="drawer-scrim" id="drawer-scrim" hidden></div>
+
+      <div class="modal-scrim" id="ws-modal-scrim" hidden></div>
+      <div class="modal" id="ws-modal" hidden role="dialog" aria-labelledby="ws-modal-title">
+        <div class="modal-header">
+          <span id="ws-modal-title">ワークスペースを開く</span>
+          <button id="ws-modal-close" class="modal-close" aria-label="閉じる">✕</button>
+        </div>
+        <div class="modal-status" id="ws-modal-status"></div>
+        <ul class="modal-list" id="ws-modal-list"></ul>
+      </div>
 
       <section class="log-area" id="log-area"></section>
 
