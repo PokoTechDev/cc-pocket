@@ -170,6 +170,39 @@ describe('createTmuxDriver — capturePane with ansi flag (mocked)', () => {
   });
 });
 
+describe('createTmuxDriver — newWindow (mocked)', () => {
+  test('creates new window with -c cwd and returns window_id', async () => {
+    const { exec, calls } = createMockExec(() => ({ stdout: '@5\n' }));
+    const tmux = createTmuxDriver({ exec });
+    const id = await tmux.newWindow('/Users/test/project');
+    assert.equal(id, '@5');
+    assert.deepEqual(calls[0].args, [
+      'new-window', '-t', 'cc-pocket', '-c', '/Users/test/project',
+      '-d', '-P', '-F', '#{window_id}',
+    ]);
+  });
+
+  test('passes -n name when provided', async () => {
+    const { exec, calls } = createMockExec(() => ({ stdout: '@7\n' }));
+    const tmux = createTmuxDriver({ exec });
+    const id = await tmux.newWindow('/Users/test/project', { name: 'foo' });
+    assert.equal(id, '@7');
+    assert.deepEqual(calls[0].args, [
+      'new-window', '-t', 'cc-pocket', '-c', '/Users/test/project',
+      '-d', '-P', '-F', '#{window_id}', '-n', 'foo',
+    ]);
+  });
+
+  test('rejects when tmux fails', async () => {
+    const { exec } = createMockExec(() => ({
+      err: Object.assign(new Error('boom'), { code: 1 }),
+      stderr: 'no session',
+    }));
+    const tmux = createTmuxDriver({ exec });
+    await assert.rejects(() => tmux.newWindow('/abs'), /tmux new-window/);
+  });
+});
+
 describe('createTmuxDriver — pipePane (mocked)', () => {
   test('issues pipe-pane -O with given shell command', async () => {
     const { exec, calls } = createMockExec(() => ({}));
@@ -247,5 +280,14 @@ describe('createTmuxDriver — integration with real tmux', () => {
     await new Promise((r) => setTimeout(r, 500));
     const out = await tmux.capturePane(w.id);
     assert.match(out, /CC_POCKET_TEST_OK/);
+  });
+
+  test('newWindow creates an additional window and returns its window_id', async () => {
+    const before = await tmux.listWindows();
+    const id = await tmux.newWindow('/tmp', { name: 'cc-pocket-it-extra' });
+    assert.match(id, /^@\d+$/);
+    const after = await tmux.listWindows();
+    assert.equal(after.length, before.length + 1);
+    assert.ok(after.some((w) => w.id === id), `expected ${id} to be in windows list`);
   });
 });

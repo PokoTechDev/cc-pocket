@@ -78,6 +78,16 @@ export function createTmuxDriver({ session = TMUX_SESSION_DEFAULT, exec = execFi
     await runTmux(exec, ['pipe-pane', '-O', '-t', target(windowId), shellCommand]);
   }
 
+  async function newWindow(cwd, { name } = {}) {
+    const args = [
+      'new-window', '-t', session, '-c', cwd,
+      '-d', '-P', '-F', '#{window_id}',
+    ];
+    if (name) args.push('-n', name);
+    const stdout = await runTmux(exec, args);
+    return stdout.trim();
+  }
+
   return {
     session,
     sessionExists,
@@ -88,5 +98,6 @@ export function createTmuxDriver({ session = TMUX_SESSION_DEFAULT, exec = execFi
     capturePane,
     captureScreen,
     pipePane,
+    newWindow,
   };
 }
