@@ -1,5 +1,6 @@
 import { URL } from 'node:url';
 import { verifyPin } from './auth.js';
+import { createSessionsHandlers } from './routes-sessions.js';
 
 const MAX_INPUT_BYTES = 8192;
 const MAX_BODY_BYTES = 16_384;
@@ -47,6 +48,8 @@ export function createRouter({
   tmux,
   sse,
   workspaces = { list: () => [] },
+  sessions = { list: async () => null },
+  homeDir = '/',
   syncWindows = async () => {},
   serverVersion = '0.0.0',
   startedAt = Date.now(),
@@ -213,6 +216,10 @@ export function createRouter({
     }
   }
 
+  const { handleSessionsRecent, handleSessionOpen } = createSessionsHandlers({
+    sessions, tmux, syncWindows, homeDir, readJsonBody,
+  });
+
   function handleEvents(req, res) {
     const lastEventId = req.headers['last-event-id'] ?? null;
     const client = sse.attach(res, { lastEventId });
@@ -252,6 +259,8 @@ export function createRouter({
     if (method === 'GET' && path === '/events') return handleEvents(req, res);
     if (method === 'GET' && path === '/workspaces') return handleWorkspacesList(res);
     if (method === 'POST' && path === '/workspaces/open') return handleWorkspacesOpen(req, res);
+    if (method === 'GET' && path === '/sessions/recent') return handleSessionsRecent(res, url);
+    if (method === 'POST' && path === '/sessions/open') return handleSessionOpen(req, res);
 
     const m = path.match(WINDOW_PATH_RE);
     if (m) {

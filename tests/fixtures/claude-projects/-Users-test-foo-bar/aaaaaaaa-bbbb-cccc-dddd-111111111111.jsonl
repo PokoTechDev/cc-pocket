@@ -1,0 +1,3 @@
+{"type":"permission-mode","permissionMode":"default","sessionId":"aaaaaaaa-bbbb-cccc-dddd-111111111111","cwd":"/Users/test/foo/bar"}
+{"type":"file-history-snapshot","cwd":"/Users/test/foo/bar"}
+{"type":"user","message":{"role":"user","content":"こんにちは Claude"},"cwd":"/Users/test/foo/bar"}

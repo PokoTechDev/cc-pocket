@@ -142,10 +142,10 @@ CC Pocketは「PCのClaude Codeセッションを、スマホネイティブUI�
 
 claude history (`~/.claude/projects/`) から直近セッションを drawer 上部に表示し、1 タップで resume できるようにする。
 
-- [ ] `server/sessions.js` — encoded-path decoder + jsonl head parser + `listRecentSessions`
-- [ ] `server/routes.js` — `GET /sessions/recent` と `POST /sessions/open`
-- [ ] `public/recent-sessions.js` — drawer 上部の "最近のセッション" セクション
-- [ ] iPhone E2E: 直近 10 件タップで該当 claude セッション resume
+- [x] `server/sessions.js` — jsonl head parser + cwd 抽出 + `listRecentSessions`
+- [x] `server/routes-sessions.js` + `server/routes.js` — `GET /sessions/recent` と `POST /sessions/open`
+- [x] `public/recent-sessions.js` — drawer 上部の "最近のセッション" セクション
+- [x] iPhone E2E: 直近 10 件タップで該当 claude セッション resume
 
 詳細は [`specs/03-contracts.md`](./specs/03-contracts.md) §3.6、[`specs/06-ui.md`](./specs/06-ui.md) §6.3.2。
 

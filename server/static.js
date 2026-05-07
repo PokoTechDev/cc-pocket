@@ -11,6 +11,7 @@ const STATIC_FILES = {
   '/approval.js': 'approval.js',
   '/drawer.js': 'drawer.js',
   '/workspaces.js': 'workspaces.js',
+  '/recent-sessions.js': 'recent-sessions.js',
   '/style.css': 'style.css',
   '/manifest.webmanifest': 'manifest.webmanifest',
   '/icon.svg': 'icon.svg',

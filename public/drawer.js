@@ -2,10 +2,11 @@
 
 const $ = (sel) => document.querySelector(sel);
 
-export function createDrawerController({ getWindows, getCurrentId, onSelect }) {
+export function createDrawerController({ getWindows, getCurrentId, onSelect, onOpen }) {
   function open() {
     $('#drawer').hidden = false;
     $('#drawer-scrim').hidden = false;
+    onOpen?.();
   }
 
   function close() {

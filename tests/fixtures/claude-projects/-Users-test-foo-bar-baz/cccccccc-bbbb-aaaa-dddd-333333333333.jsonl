@@ -1,0 +1,2 @@
+{"type":"permission-mode","cwd":"/Users/test/foo-bar/baz"}
+{"type":"user","message":{"role":"user","content":"foo-bar/baz session"},"cwd":"/Users/test/foo-bar/baz"}

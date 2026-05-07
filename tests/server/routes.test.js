@@ -59,6 +59,8 @@ function defaultDeps(stored = null) {
     tmux: makeMockTmux(),
     sse: createSseBroadcaster(),
     workspaces: { list: () => [] },
+    sessions: { list: async () => null },
+    homeDir: '/Users/test',
     syncWindows: async () => {},
     serverVersion: '0.0.0-test',
     startedAt: 1_700_000_000_000,
@@ -641,6 +643,201 @@ describe('routes — GET /events SSE', () => {
       assert.match(text, /event: snapshot/);
       assert.match(text, /"windows"/);
       reader.cancel();
+    });
+  });
+});
+
+describe('routes — GET /sessions/recent', () => {
+  test('returns sessions from list provider', async () => {
+    const stored = hashPin('1234');
+    await withServer(() => {
+      const deps = defaultDeps(stored);
+      deps.sessions = {
+        list: async () => [
+          { sessionId: 'aaaaaaaa-bbbb-cccc-dddd-111111111111', projectPath: '/Users/test/foo', projectName: 'foo', mtime: 1_700_000_001_000, firstUserMessage: 'hello' },
+          { sessionId: 'bbbbbbbb-cccc-dddd-eeee-222222222222', projectPath: '/Users/test/bar', projectName: 'bar', mtime: 1_700_000_000_000, firstUserMessage: null },
+        ],
+      };
+      return deps;
+    }, async (base) => {
+      const token = await authenticate(base, '1234');
+      const res = await fetch(`${base}/sessions/recent`, {
+        headers: { authorization: `Bearer ${token}` },
+      });
+      assert.equal(res.status, 200);
+      const body = await res.json();
+      assert.equal(body.sessions.length, 2);
+      assert.equal(body.sessions[0].projectName, 'foo');
+      assert.equal(body.sessions[1].firstUserMessage, null);
+    });
+  });
+
+  test('forwards limit query to provider', async () => {
+    const stored = hashPin('1234');
+    let receivedLimit = null;
+    await withServer(() => {
+      const deps = defaultDeps(stored);
+      deps.sessions = {
+        list: async (limit) => { receivedLimit = limit; return []; },
+      };
+      return deps;
+    }, async (base) => {
+      const token = await authenticate(base, '1234');
+      const res = await fetch(`${base}/sessions/recent?limit=5`, {
+        headers: { authorization: `Bearer ${token}` },
+      });
+      assert.equal(res.status, 200);
+      assert.equal(receivedLimit, 5);
+    });
+  });
+
+  test('returns 503 when claude history not present (provider returns null)', async () => {
+    const stored = hashPin('1234');
+    await withServer(() => defaultDeps(stored), async (base) => {
+      const token = await authenticate(base, '1234');
+      const res = await fetch(`${base}/sessions/recent`, {
+        headers: { authorization: `Bearer ${token}` },
+      });
+      assert.equal(res.status, 503);
+      const body = await res.json();
+      assert.equal(body.error, 'claude_history_not_found');
+    });
+  });
+
+  test('requires authentication', async () => {
+    const stored = hashPin('1234');
+    await withServer(() => defaultDeps(stored), async (base) => {
+      const res = await fetch(`${base}/sessions/recent`);
+      assert.equal(res.status, 401);
+    });
+  });
+});
+
+describe('routes — POST /sessions/open', () => {
+  const VALID_ID = 'aaaaaaaa-bbbb-cccc-dddd-111111111111';
+
+  test('creates new window with projectPath and runs claude --resume <id>', async () => {
+    const stored = hashPin('1234');
+    let syncCount = 0;
+    await withServer(() => {
+      const deps = defaultDeps(stored);
+      deps.syncWindows = async () => { syncCount += 1; };
+      return deps;
+    }, async (base, deps) => {
+      const token = await authenticate(base, '1234');
+      const res = await fetch(`${base}/sessions/open`, {
+        method: 'POST',
+        headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+        body: JSON.stringify({ projectPath: '/Users/test/foo/bar', sessionId: VALID_ID }),
+      });
+      assert.equal(res.status, 200);
+      const body = await res.json();
+      assert.equal(body.ok, true);
+      assert.match(body.windowId, /^@\d+$/);
+
+      const newWin = deps.tmux._calls.find((c) => c.kind === 'newWindow');
+      assert.ok(newWin);
+      assert.equal(newWin.cwd, '/Users/test/foo/bar');
+
+      const sendText = deps.tmux._calls.find((c) => c.kind === 'sendText' && c.id === newWin.id);
+      assert.equal(sendText.text, `claude --resume ${VALID_ID}`);
+
+      const sendKey = deps.tmux._calls.find((c) => c.kind === 'sendKey' && c.id === newWin.id);
+      assert.equal(sendKey.key, 'Enter');
+
+      assert.equal(syncCount, 1);
+    });
+  });
+
+  test('returns 400 on missing projectPath', async () => {
+    const stored = hashPin('1234');
+    await withServer(() => defaultDeps(stored), async (base) => {
+      const token = await authenticate(base, '1234');
+      const res = await fetch(`${base}/sessions/open`, {
+        method: 'POST',
+        headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+        body: JSON.stringify({ sessionId: VALID_ID }),
+      });
+      assert.equal(res.status, 400);
+    });
+  });
+
+  test('returns 400 on invalid sessionId format', async () => {
+    const stored = hashPin('1234');
+    await withServer(() => defaultDeps(stored), async (base) => {
+      const token = await authenticate(base, '1234');
+      const res = await fetch(`${base}/sessions/open`, {
+        method: 'POST',
+        headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+        body: JSON.stringify({ projectPath: '/Users/test/foo', sessionId: 'not-a-uuid' }),
+      });
+      assert.equal(res.status, 400);
+      const body = await res.json();
+      assert.equal(body.reason, 'invalid_session_id');
+    });
+  });
+
+  test('returns 400 on relative projectPath', async () => {
+    const stored = hashPin('1234');
+    await withServer(() => defaultDeps(stored), async (base) => {
+      const token = await authenticate(base, '1234');
+      const res = await fetch(`${base}/sessions/open`, {
+        method: 'POST',
+        headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+        body: JSON.stringify({ projectPath: 'foo/bar', sessionId: VALID_ID }),
+      });
+      assert.equal(res.status, 400);
+      const body = await res.json();
+      assert.equal(body.reason, 'invalid_path');
+    });
+  });
+
+  test('returns 400 on projectPath containing ..', async () => {
+    const stored = hashPin('1234');
+    await withServer(() => defaultDeps(stored), async (base) => {
+      const token = await authenticate(base, '1234');
+      const res = await fetch(`${base}/sessions/open`, {
+        method: 'POST',
+        headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+        body: JSON.stringify({ projectPath: '/Users/test/foo/../etc', sessionId: VALID_ID }),
+      });
+      assert.equal(res.status, 400);
+      const body = await res.json();
+      assert.equal(body.reason, 'invalid_path');
+    });
+  });
+
+  test('returns 400 on projectPath outside homeDir', async () => {
+    const stored = hashPin('1234');
+    await withServer(() => defaultDeps(stored), async (base) => {
+      const token = await authenticate(base, '1234');
+      const res = await fetch(`${base}/sessions/open`, {
+        method: 'POST',
+        headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+        body: JSON.stringify({ projectPath: '/etc/passwd', sessionId: VALID_ID }),
+      });
+      assert.equal(res.status, 400);
+      const body = await res.json();
+      assert.equal(body.reason, 'invalid_path');
+    });
+  });
+
+  test('returns 503 when tmux fails', async () => {
+    const stored = hashPin('1234');
+    await withServer(() => {
+      const deps = defaultDeps(stored);
+      deps.tmux.newWindow = async () => { throw new Error('tmux dead'); };
+      return deps;
+    }, async (base) => {
+      const token = await authenticate(base, '1234');
+      const res = await fetch(`${base}/sessions/open`, {
+        method: 'POST',
+        headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+        body: JSON.stringify({ projectPath: '/Users/test/foo', sessionId: VALID_ID }),
+      });
+      assert.equal(res.status, 503);
+      const body = await res.json();
+      assert.equal(body.error, 'tmux_unavailable');
     });
   });
 });

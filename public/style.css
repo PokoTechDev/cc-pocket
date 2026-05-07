@@ -197,6 +197,44 @@ input, textarea, select {
 }
 .drawer-btn:active { background: var(--surface); }
 .drawer-list { list-style: none; padding: 0; margin: 0; overflow-y: auto; flex: 1; }
+.drawer-section { border-bottom: 1px solid var(--border); max-height: 50vh; overflow-y: auto; }
+.drawer-section-header {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 12px 16px 4px;
+}
+.drawer-section-status { padding: 0 16px 8px; color: var(--muted); font-size: 12px; }
+.drawer-section-status:empty { display: none; }
+.drawer-recent-list { list-style: none; padding: 0; margin: 0; }
+.recent-item {
+  padding: 10px 16px;
+  border-top: 1px solid var(--border);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.recent-item:active { background: var(--surface-2); }
+.recent-item.selecting { opacity: 0.5; }
+.recent-meta {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  font-size: 11px;
+  color: var(--muted);
+}
+.recent-time { font-weight: 600; }
+.recent-project { color: var(--fg); }
+.recent-message {
+  font-size: 13px;
+  color: var(--fg);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .drawer-item {
   padding: 12px 16px;
   border-bottom: 1px solid var(--border);

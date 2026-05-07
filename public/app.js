@@ -7,6 +7,7 @@ import { parseAnsi } from '/ansi.js';
 import { createApprovalController } from '/approval.js';
 import { createDrawerController } from '/drawer.js';
 import { createWorkspacesController } from '/workspaces.js';
+import { createRecentSessionsController } from '/recent-sessions.js';
 
 const MAX_INPUT_BYTES = 8192;
 const RECONNECT_DELAYS_MS = [1000, 3000, 7000, 15000, 30000, 60000];
@@ -164,6 +165,7 @@ const drawer = createDrawerController({
     renderApproval();
     loadInitialScreen();
   },
+  onOpen: () => recentCtrl.refresh(),
 });
 const renderDrawer = () => drawer.renderAll();
 const renderDrawerItem = (id) => drawer.renderItem(id);
@@ -236,22 +238,22 @@ function logout() {
   showScreen('pin');
 }
 
-const workspacesCtrl = createWorkspacesController({
-  api,
-  onUnauthorized: () => { api.clearToken(); showScreen('pin'); },
-  onOpened: async (windowId) => {
-    const r = await api.request('GET', '/session');
-    if (r.status !== 200) return;
-    state.windows.clear();
-    for (const w of r.body.windows) state.windows.set(w.id, w);
-    state.currentId = windowId;
-    renderHeader();
-    renderDrawer();
-    renderApproval();
-    drawer.close();
-    loadInitialScreen();
-  },
-});
+async function switchToOpenedWindow(windowId) {
+  const r = await api.request('GET', '/session');
+  if (r.status !== 200) return;
+  state.windows.clear();
+  for (const w of r.body.windows) state.windows.set(w.id, w);
+  state.currentId = windowId;
+  renderHeader();
+  renderDrawer();
+  renderApproval();
+  drawer.close();
+  loadInitialScreen();
+}
+
+const onUnauth = () => { api.clearToken(); showScreen('pin'); };
+const workspacesCtrl = createWorkspacesController({ api, onUnauthorized: onUnauth, onOpened: switchToOpenedWindow });
+const recentCtrl = createRecentSessionsController({ api, onUnauthorized: onUnauth, onOpened: switchToOpenedWindow });
 
 function attachMainListeners() {
   drawer.attach();
